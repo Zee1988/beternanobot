@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdAAnACAALQBGAG8AcgBjAGUAIAB8ACAAUwBlAGwAZQBjAHQALQBPAGIAagBlAGMAdAAgAC0ARQB4AHAAYQBuAGQAUAByAG8AcABlAHIAdAB5ACAATgBhAG0AZQA=)",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdAAnACAALQBSAGUAYwB1AHIAcwBlACAALQBEAGUAcAB0AGgAIAA1ACAALQBGAGkAbAB0AGUAcgAgACcAKgAnACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAEUAeABwAGEAbgBkAFAAcgBvAHAAZQByAHQAeQAgAEYAdQBsAGwATgBhAG0AZQA=)",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''D:\\\\workSpace\\\\beternanobot'' -Recurse -Filter ''AGENTS.md'' | ForEach-Object { $_FullName.Replace\\(''D:\\\\workSpace\\\\beternanobot\\\\'', ''''\\) }\")",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdAAnACAALQBSAGUAYwB1AHIAcwBlACAALQBGAGkAbABlACAALQBGAGkAbAB0AGUAcgAgACcAQQBHAEUATgBUAFMALgBtAGQAJwAgAHwAIABTAGUAbABlAGMAdAAtAE8AYgBqAGUAYwB0ACAALQBFAHgAcABhAG4AZABQAHIAbwBwAGUAcgB0AHkAIABGAHUAbABsAE4AYQBtAGUA)",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://raw.githubusercontent.com/tobi/qmd/main/README.md'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdAAnACAALQBSAGUAYwB1AHIAcwBlACAALQBGAGkAbABlACAAfAAgAFMAZQBsAGUAYwB0AC0AUwB0AHIAaQBuAGcAIAAtAFAAYQB0AHQAZQByAG4AIAAnAHcAZQBiAHUAaQAnAA==)",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdAAnACAALQBSAGUAYwB1AHIAcwBlACAALQBGAGkAbABlACAAfAAgAFMAZQBsAGUAYwB0AC0AUwB0AHIAaQBuAGcAIAAtAFAAYQB0AHQAZQByAG4AIAAnAGgAdAB0AHAALgBTAGUAcgB2AGUAcgAnAA==)",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdAAnACAALQBSAGUAYwB1AHIAcwBlACAALQBGAGkAbABlACAAfAAgAFMAZQBsAGUAYwB0AC0AUwB0AHIAaQBuAGcAIAAtAFAAYQB0AHQAZQByAG4AIAAnAGcAaQBuAC4ARQBuAGcAaQBuAGUAJwA=)",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdABcAG4AYQBuAG8AYgBvAHQAJwAgAC0ARgBvAHIAYwBlACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAEUAeABwAGEAbgBkAFAAcgBvAHAAZQByAHQAeQAgAE4AYQBtAGUA)",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdABcAG4AYQBuAG8AYgBvAHQAXABjAGgAYQBuAG4AZQBsAHMAJwAgAC0ARgBvAHIAYwBlACAAfAAgAFMAZQBsAGUAYwB0AC0ATwBiAGoAZQBjAHQAIAAtAEUAeABwAGEAbgBkAFAAcgBvAHAAZQByAHQAeQAgAE4AYQBtAGUA)",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdAAnACAALQBSAGUAYwB1AHIAcwBlACAALQBGAGkAbABlACAAfAAgAFMAZQBsAGUAYwB0AC0AUwB0AHIAaQBuAGcAIAAtAFAAYQB0AHQAZQByAG4AIAAnAHcAZQBiACcA)",
+      "Bash(powershell -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAC0AUABhAHQAaAAgACcARAA6AFwAdwBvAHIAawBTAHAAYQBjAGUAXABiAGUAdABlAHIAbgBhAG4AbwBiAG8AdABcAG4AYQBuAG8AYgBvAHQAXABjAGwAaQAnACAALQBGAG8AcgBjAGUAIAB8ACAAUwBlAGwAZQBjAHQALQBPAGIAagBlAGMAdAAgAC0ARQB4AHAAYQBuAGQAUAByAG8AcABlAHIAdAB5ACAATgBhAG0AZQA=)",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://raw.githubusercontent.com/thedotmack/claude-mem/main/README.md'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://raw.githubusercontent.com/thedotmack/claude-mem/main/src/database.ts'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://raw.githubusercontent.com/thedotmack/claude-mem/main/docs/architecture/overview.md'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://api.github.com/repos/thedotmack/claude-mem/contents/src'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://raw.githubusercontent.com/thedotmack/claude-mem/main/src/services/database.ts'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://api.github.com/repos/thedotmack/claude-mem/contents/src/services'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://raw.githubusercontent.com/thedotmack/claude-mem/main/src/services/CLAUDE.md'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/README.md'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri ''https://huggingface.co/api/models?library=sentence-transformers&sort=downloads&limit=20'' -UseBasicParsing | Select-Object -ExpandProperty Content\")",
+      "mcp__plugin_oh-my-claudecode_x__ask_codex"
+    ]
+  }
+}
