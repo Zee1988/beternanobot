@@ -364,6 +364,7 @@ def gateway(
         cron_service=cron,
         restrict_to_workspace=config.tools.restrict_to_workspace,
         session_manager=session_manager,
+        memory_config=config.memory.model_dump() if config.memory.enabled else None,
     )
     
     # Set cron callback (needs agent)
@@ -413,6 +414,7 @@ def gateway(
     
     async def run():
         try:
+            await agent.initialize_memory()
             await cron.start()
             await heartbeat.start()
             await asyncio.gather(
@@ -466,6 +468,7 @@ def agent(
         brave_api_key=config.tools.web.search.api_key or None,
         exec_config=config.tools.exec,
         restrict_to_workspace=config.tools.restrict_to_workspace,
+        memory_config=config.memory.model_dump() if config.memory.enabled else None,
     )
     
     # Show spinner when logs are off (no output to miss); skip when logs are on
@@ -478,6 +481,7 @@ def agent(
     if message:
         # Single message mode
         async def run_once():
+            await agent_loop.initialize_memory()
             with _thinking_ctx():
                 response = await agent_loop.process_direct(message, session_id)
             _print_agent_response(response, render_markdown=markdown)
@@ -499,6 +503,7 @@ def agent(
         signal.signal(signal.SIGINT, _exit_on_sigint)
         
         async def run_interactive():
+            await agent_loop.initialize_memory()
             while True:
                 try:
                     _flush_pending_tty_input()

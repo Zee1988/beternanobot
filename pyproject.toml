@@ -37,6 +37,8 @@ dependencies = [
     "slack-sdk>=3.26.0",
     "qq-botpy>=1.0.0",
     "python-socks[asyncio]>=2.4.0",
+    "fastembed>=0.2.0",
+    "numpy>=1.24.0",
 ]
 
 [project.optional-dependencies]

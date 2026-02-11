@@ -220,6 +220,25 @@ class ToolsConfig(BaseModel):
     restrict_to_workspace: bool = False  # If true, restrict all tool access to workspace directory
 
 
+class MemoryConfig(BaseModel):
+    """Smart memory configuration."""
+    enabled: bool = True
+    embedding_model: str = "BAAI/bge-small-zh-v1.5"
+    recall_timeout: float = 0.15
+    recall_top_k: int = 5
+    max_context_tokens: int = 800
+    chunk_max_tokens: int = 256
+    vector_weight: float = 0.6
+    fts_weight: float = 0.4
+    summary_interval: float = 300.0
+    summary_mode: str = "concat"  # "concat" | "llm"
+    summary_llm_provider: str | None = None
+    observation_max_age_days: int = 30
+    index_queue_max: int = 1000
+    vector_refresh_ttl: float = 30.0
+    db_path: str = ""
+
+
 class Config(BaseSettings):
     """Root configuration for nanobot."""
     agents: AgentsConfig = Field(default_factory=AgentsConfig)
@@ -227,6 +246,7 @@ class Config(BaseSettings):
     providers: ProvidersConfig = Field(default_factory=ProvidersConfig)
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
     
     @property
     def workspace_path(self) -> Path:

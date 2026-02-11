@@ -12,6 +12,7 @@ from nanobot.bus.queue import MessageBus
 from nanobot.providers.base import LLMProvider
 from nanobot.agent.context import ContextBuilder
 from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.storage.retrieval import MEMORY_CONTEXT_PREFIX
 from nanobot.agent.tools.filesystem import ReadFileTool, WriteFileTool, EditFileTool, ListDirTool
 from nanobot.agent.tools.shell import ExecTool
 from nanobot.agent.tools.web import WebSearchTool, WebFetchTool
@@ -46,6 +47,7 @@ class AgentLoop:
         cron_service: "CronService | None" = None,
         restrict_to_workspace: bool = False,
         session_manager: SessionManager | None = None,
+        memory_config: dict | None = None,
     ):
         from nanobot.config.schema import ExecToolConfig
         from nanobot.cron.service import CronService
@@ -58,8 +60,9 @@ class AgentLoop:
         self.exec_config = exec_config or ExecToolConfig()
         self.cron_service = cron_service
         self.restrict_to_workspace = restrict_to_workspace
-        
-        self.context = ContextBuilder(workspace)
+        self.memory_config = memory_config
+
+        self.context = ContextBuilder(workspace, memory_config=memory_config)
         self.sessions = session_manager or SessionManager(workspace)
         self.tools = ToolRegistry()
         self.subagents = SubagentManager(
@@ -74,7 +77,11 @@ class AgentLoop:
         
         self._running = False
         self._register_default_tools()
-    
+
+    async def initialize_memory(self):
+        """Initialize smart memory system."""
+        await self.context.memory.initialize()
+
     def _register_default_tools(self) -> None:
         """Register the default set of tools."""
         # File tools (restrict to workspace if configured)
@@ -183,7 +190,18 @@ class AgentLoop:
             channel=msg.channel,
             chat_id=msg.chat_id,
         )
-        
+
+        # Smart memory: async recall with timeout
+        memory_context = await self.context.memory.recall(msg.content, timeout=0.15)
+        if memory_context:
+            # Safety check: ensure prefix exists (#25)
+            if not memory_context.startswith(MEMORY_CONTEXT_PREFIX):
+                memory_context = f"{MEMORY_CONTEXT_PREFIX}\n{memory_context}\n[记忆参考结束]"
+            messages.insert(-1, {"role": "user", "content": memory_context})
+
+        # Feed message to SummaryTimer
+        self.context.memory.feed_message("user", msg.content)
+
         # Agent loop
         iteration = 0
         final_content = None
@@ -222,12 +240,19 @@ class AgentLoop:
                     args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
                     logger.info(f"Tool call: {tool_call.name}({args_str[:200]})")
                     result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                    # Smart memory: record tool observation
+                    await self.context.memory.on_tool_executed(
+                        tool_call.name, tool_call.arguments, result
+                    )
                     messages = self.context.add_tool_result(
                         messages, tool_call.id, tool_call.name, result
                     )
             else:
                 # No tool calls, we're done
                 final_content = response.content
+                # Feed assistant response to SummaryTimer
+                if final_content:
+                    self.context.memory.feed_message("assistant", final_content)
                 break
         
         if final_content is None:
@@ -373,6 +398,11 @@ class AgentLoop:
             chat_id=chat_id,
             content=content
         )
-        
+
         response = await self._process_message(msg)
         return response.content if response else ""
+
+    async def shutdown(self):
+        """Shutdown agent loop and smart memory."""
+        self.stop()
+        await self.context.memory.shutdown()
