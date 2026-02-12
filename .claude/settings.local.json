@@ -63,7 +63,19 @@
       "Bash(.venv/bin/python:*)",
       "Bash(sqlite3:*)",
       "Bash(nanobot agent:*)",
-      "Bash(.venv/bin/nanobot:*)"
+      "Bash(.venv/bin/nanobot:*)",
+      "Bash(dir:*)",
+      "Bash(ls \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\plans\"\" 2>nul || echo \"directory does not exist \")",
+      "Bash(python -c:*)",
+      "Bash(python -m ruff check:*)",
+      "Bash(pytest:*)",
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\autopilot-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\autopilot-state.json\")",
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ralph-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ralph-state.json\")",
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultrawork-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultrawork-state.json\")",
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ecomode-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ecomode-state.json\")",
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultraqa-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultraqa-state.json\")",
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultrapilot-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultrapilot-state.json\")",
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\pipeline-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\pipeline-state.json\")"
     ]
   }
 }

@@ -161,6 +161,8 @@ class AgentDefaults(BaseModel):
     max_tokens: int = 8192
     temperature: float = 0.7
     max_tool_iterations: int = 20
+    context_compression: bool = True            # 上下文压缩总开关
+    context_window_override: int | None = None  # 手动覆盖上下文窗口大小
 
 
 class AgentsConfig(BaseModel):

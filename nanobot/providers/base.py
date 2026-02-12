@@ -21,11 +21,16 @@ class LLMResponse:
     finish_reason: str = "stop"
     usage: dict[str, int] = field(default_factory=dict)
     reasoning_content: str | None = None  # Kimi, DeepSeek-R1 etc.
-    
+
     @property
     def has_tool_calls(self) -> bool:
         """Check if response contains tool calls."""
         return len(self.tool_calls) > 0
+
+
+class ContextOverflowError(Exception):
+    """上下文窗口溢出，可通过压缩恢复。"""
+    pass
 
 
 class LLMProvider(ABC):

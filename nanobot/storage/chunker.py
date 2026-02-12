@@ -9,12 +9,14 @@ def estimate_tokens(text: str) -> int:
     Simple token estimator.
 
     English: split by whitespace.
-    CJK: each character ≈ 0.6 tokens.
+    CJK: each character ≈ 0.7 tokens (adjusted from 0.6).
+    CJK punctuation: each ≈ 1 token.
     """
     ascii_tokens = len(re.findall(r'[a-zA-Z]+', text))
     cjk_chars = len(re.findall(r'[\u4e00-\u9fff\u3400-\u4dbf]', text))
+    cjk_punct = len(re.findall(r'[\u3000-\u303f\uff00-\uffef]', text))
     other = len(re.findall(r'[0-9]+', text))
-    return ascii_tokens + int(cjk_chars * 0.6) + other
+    return ascii_tokens + int(cjk_chars * 0.7) + cjk_punct + other
 
 
 def chunk_text(

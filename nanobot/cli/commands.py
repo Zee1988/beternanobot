@@ -365,6 +365,10 @@ def gateway(
         restrict_to_workspace=config.tools.restrict_to_workspace,
         session_manager=session_manager,
         memory_config=config.memory.model_dump() if config.memory.enabled else None,
+        context_compression=config.agents.defaults.context_compression,
+        context_window_override=config.agents.defaults.context_window_override,
+        max_tokens=config.agents.defaults.max_tokens,
+        temperature=config.agents.defaults.temperature,
     )
     
     # Set cron callback (needs agent)
@@ -469,6 +473,10 @@ def agent(
         exec_config=config.tools.exec,
         restrict_to_workspace=config.tools.restrict_to_workspace,
         memory_config=config.memory.model_dump() if config.memory.enabled else None,
+        context_compression=config.agents.defaults.context_compression,
+        context_window_override=config.agents.defaults.context_window_override,
+        max_tokens=config.agents.defaults.max_tokens,
+        temperature=config.agents.defaults.temperature,
     )
     
     # Show spinner when logs are off (no output to miss); skip when logs are on

@@ -10,7 +10,10 @@ from loguru import logger
 
 from nanobot.bus.events import InboundMessage
 from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import LLMProvider
+from nanobot.providers.base import LLMProvider, ContextOverflowError
+from nanobot.agent.compressor import (
+    trim_tool_result, compress_messages, emergency_compress, get_context_window,
+)
 from nanobot.agent.tools.registry import ToolRegistry
 from nanobot.agent.tools.filesystem import ReadFileTool, WriteFileTool, ListDirTool
 from nanobot.agent.tools.shell import ExecTool
@@ -124,12 +127,28 @@ class SubagentManager:
             
             while iteration < max_iterations:
                 iteration += 1
-                
-                response = await self.provider.chat(
-                    messages=messages,
-                    tools=tools.get_definitions(),
-                    model=self.model,
-                )
+
+                ctx_window = get_context_window(self.model)
+                messages = compress_messages(messages, ctx_window, self.model)
+                try:
+                    response = await self.provider.chat(
+                        messages=messages,
+                        tools=tools.get_definitions(),
+                        model=self.model,
+                    )
+                except ContextOverflowError:
+                    logger.warning(f"Subagent [{task_id}] context overflow, emergency compress")
+                    messages = emergency_compress(messages, ctx_window, self.model)
+                    try:
+                        response = await self.provider.chat(
+                            messages=messages,
+                            tools=tools.get_definitions(),
+                            model=self.model,
+                        )
+                    except ContextOverflowError:
+                        logger.error(f"Subagent [{task_id}] emergency compress failed")
+                        final_result = "子代理上下文溢出，紧急压缩后仍超限，任务中止。"
+                        break
                 
                 if response.has_tool_calls:
                     # Add assistant message with tool calls
@@ -155,6 +174,7 @@ class SubagentManager:
                         args_str = json.dumps(tool_call.arguments)
                         logger.debug(f"Subagent [{task_id}] executing: {tool_call.name} with arguments: {args_str}")
                         result = await tools.execute(tool_call.name, tool_call.arguments)
+                        result = trim_tool_result(result)
                         messages.append({
                             "role": "tool",
                             "tool_call_id": tool_call.id,

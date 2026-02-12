@@ -132,16 +132,16 @@
   },
   "hotPaths": [
     {
+      "path": "",
+      "accessCount": 43,
+      "lastAccessed": 1770881189006,
+      "type": "directory"
+    },
+    {
       "path": "nanobot/agent/loop.py",
       "accessCount": 40,
       "lastAccessed": 1770827295644,
       "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 20,
-      "lastAccessed": 1770827286733,
-      "type": "directory"
     },
     {
       "path": "nanobot/cli/commands.py",

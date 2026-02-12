@@ -36,21 +36,53 @@ class Session:
         self.messages.append(msg)
         self.updated_at = datetime.now()
     
-    def get_history(self, max_messages: int = 50) -> list[dict[str, Any]]:
+    def get_history(
+        self,
+        max_messages: int = 50,
+        max_tokens: int | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Get message history for LLM context.
-        
+
         Args:
-            max_messages: Maximum messages to return.
-        
+            max_messages: Maximum messages to return (hard cap).
+            max_tokens: Optional token budget. When set, returns as many
+                        recent messages as fit within this budget.
+
         Returns:
             List of messages in LLM format.
         """
         # Get recent messages
         recent = self.messages[-max_messages:] if len(self.messages) > max_messages else self.messages
-        
+
         # Convert to LLM format (just role and content)
-        return [{"role": m["role"], "content": m["content"]} for m in recent]
+        history = [{"role": m["role"], "content": m["content"]} for m in recent]
+
+        if max_tokens is not None and max_tokens > 0:
+            from nanobot.storage.chunker import estimate_tokens
+            result = []
+            total = 0
+            i = len(history) - 1
+            while i >= 0:
+                msg = history[i]
+                tokens = estimate_tokens(msg.get("content", "") or "")
+                if msg.get("role") == "assistant" and i > 0 and history[i-1].get("role") == "user":
+                    pair_tokens = tokens + estimate_tokens(history[i-1].get("content", "") or "")
+                    if total + pair_tokens > max_tokens and result:
+                        break
+                    result.append(history[i-1])
+                    result.append(msg)
+                    total += pair_tokens
+                    i -= 2
+                else:
+                    if total + tokens > max_tokens and result:
+                        break
+                    result.append(msg)
+                    total += tokens
+                    i -= 1
+            return list(reversed(result))
+
+        return history
     
     def clear(self) -> None:
         """Clear all messages in the session."""

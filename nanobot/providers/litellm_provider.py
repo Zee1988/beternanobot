@@ -7,7 +7,7 @@ from typing import Any
 import litellm
 from litellm import acompletion
 
-from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest, ContextOverflowError
 from nanobot.providers.registry import find_by_model, find_gateway
 
 
@@ -151,6 +151,9 @@ class LiteLLMProvider(LLMProvider):
         try:
             response = await acompletion(**kwargs)
             return self._parse_response(response)
+        except litellm.ContextWindowExceededError as e:
+            # Context overflow: propagate up for AgentLoop to handle
+            raise ContextOverflowError(str(e)) from e
         except Exception as e:
             # Return error as content for graceful handling
             return LLMResponse(

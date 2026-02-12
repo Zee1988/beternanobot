@@ -9,7 +9,7 @@ from loguru import logger
 
 from nanobot.bus.events import InboundMessage, OutboundMessage
 from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import LLMProvider
+from nanobot.providers.base import LLMProvider, ContextOverflowError, LLMResponse
 from nanobot.agent.context import ContextBuilder
 from nanobot.agent.tools.registry import ToolRegistry
 from nanobot.storage.retrieval import MEMORY_CONTEXT_PREFIX
@@ -21,6 +21,9 @@ from nanobot.agent.tools.spawn import SpawnTool
 from nanobot.agent.tools.cron import CronTool
 from nanobot.agent.subagent import SubagentManager
 from nanobot.session.manager import SessionManager
+from nanobot.agent.compressor import (
+    get_context_window, compress_messages, emergency_compress, trim_tool_result,
+)
 
 
 class AgentLoop:
@@ -48,6 +51,10 @@ class AgentLoop:
         restrict_to_workspace: bool = False,
         session_manager: SessionManager | None = None,
         memory_config: dict | None = None,
+        context_compression: bool = True,
+        context_window_override: int | None = None,
+        max_tokens: int = 8192,
+        temperature: float = 0.7,
     ):
         from nanobot.config.schema import ExecToolConfig
         from nanobot.cron.service import CronService
@@ -61,6 +68,12 @@ class AgentLoop:
         self.cron_service = cron_service
         self.restrict_to_workspace = restrict_to_workspace
         self.memory_config = memory_config
+        self._compression_enabled = context_compression
+        self._context_window = get_context_window(
+            self.model, context_window_override
+        )
+        self._max_tokens = max_tokens
+        self._temperature = temperature
 
         self.context = ContextBuilder(workspace, memory_config=memory_config)
         self.sessions = session_manager or SessionManager(workspace)
@@ -113,7 +126,46 @@ class AgentLoop:
         # Cron tool (for scheduling)
         if self.cron_service:
             self.tools.register(CronTool(self.cron_service))
-    
+
+    async def _call_llm_with_recovery(
+        self,
+        messages: list[dict],
+        tools_defs: list[dict] | None = None,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> LLMResponse:
+        """Shared LLM call with compression + overflow recovery."""
+        _max_tokens = max_tokens if max_tokens is not None else self._max_tokens
+        _temperature = temperature if temperature is not None else self._temperature
+
+        if self._compression_enabled:
+            messages = compress_messages(messages, self._context_window, self.model)
+
+        try:
+            return await self.provider.chat(
+                messages=messages,
+                tools=tools_defs,
+                model=self.model,
+                max_tokens=_max_tokens,
+                temperature=_temperature,
+            )
+        except ContextOverflowError:
+            logger.warning("Context overflow, applying emergency compression")
+            messages = emergency_compress(messages, self._context_window, self.model)
+            try:
+                return await self.provider.chat(
+                    messages=messages,
+                    tools=tools_defs,
+                    model=self.model,
+                    max_tokens=_max_tokens,
+                    temperature=_temperature,
+                )
+            except ContextOverflowError:
+                logger.error("Emergency compression failed, context still too large")
+                msg = "对话历史过长，自动压缩后仍然超出模型限制。" \
+                    "请发送 /clear 清空会话后重试。"
+                return LLMResponse(content=msg, finish_reason="error")
+
     async def run(self) -> None:
         """Run the agent loop, processing messages from the bus."""
         self._running = True
@@ -183,8 +235,15 @@ class AgentLoop:
             cron_tool.set_context(msg.channel, msg.chat_id)
         
         # Build initial messages (use get_history for LLM-formatted messages)
+        if self._compression_enabled:
+            history_budget = self._context_window - self._max_tokens - 4096
+            history_budget = max(history_budget, 4096)
+            history = session.get_history(max_tokens=history_budget)
+        else:
+            history = session.get_history()
+
         messages = self.context.build_messages(
-            history=session.get_history(),
+            history=history,
             current_message=msg.content,
             media=msg.media if msg.media else None,
             channel=msg.channel,
@@ -210,10 +269,8 @@ class AgentLoop:
             iteration += 1
             
             # Call LLM
-            response = await self.provider.chat(
-                messages=messages,
-                tools=self.tools.get_definitions(),
-                model=self.model
+            response = await self._call_llm_with_recovery(
+                messages, self.tools.get_definitions()
             )
             
             # Handle tool calls
@@ -240,6 +297,8 @@ class AgentLoop:
                     args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
                     logger.info(f"Tool call: {tool_call.name}({args_str[:200]})")
                     result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                    if self._compression_enabled:
+                        result = trim_tool_result(result)
                     # Smart memory: record tool observation
                     await self.context.memory.on_tool_executed(
                         tool_call.name, tool_call.arguments, result
@@ -311,8 +370,15 @@ class AgentLoop:
             cron_tool.set_context(origin_channel, origin_chat_id)
         
         # Build messages with the announce content
+        if self._compression_enabled:
+            history_budget = self._context_window - self._max_tokens - 4096
+            history_budget = max(history_budget, 4096)
+            history = session.get_history(max_tokens=history_budget)
+        else:
+            history = session.get_history()
+
         messages = self.context.build_messages(
-            history=session.get_history(),
+            history=history,
             current_message=msg.content,
             channel=origin_channel,
             chat_id=origin_chat_id,
@@ -324,11 +390,9 @@ class AgentLoop:
         
         while iteration < self.max_iterations:
             iteration += 1
-            
-            response = await self.provider.chat(
-                messages=messages,
-                tools=self.tools.get_definitions(),
-                model=self.model
+
+            response = await self._call_llm_with_recovery(
+                messages, self.tools.get_definitions()
             )
             
             if response.has_tool_calls:
@@ -352,6 +416,8 @@ class AgentLoop:
                     args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
                     logger.info(f"Tool call: {tool_call.name}({args_str[:200]})")
                     result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                    if self._compression_enabled:
+                        result = trim_tool_result(result)
                     messages = self.context.add_tool_result(
                         messages, tool_call.id, tool_call.name, result
                     )
