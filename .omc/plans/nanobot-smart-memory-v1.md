@@ -287,7 +287,7 @@ class ObservationHook(AgentHook):
 
         return f"""## 🔧 {title}
 
-**Time:** {time_str} | **Duration:** {duration} | **Tool:** `{exec.tool_name}`
+**\1**: {time_str} | **\1**: {duration} | **\1**: `{exec.tool_name}`
 
 <details>
 <summary>Arguments</summary>
@@ -297,7 +297,7 @@ class ObservationHook(AgentHook):
 ```
 </details>
 
-**Result:**
+**\1**:
 ```
 {result_preview}
 ```

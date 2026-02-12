@@ -22,7 +22,7 @@ nanobot/agent/memory.py - MemoryStore
     └── get_memory_context()  # 简单拼接返回
 ```
 
-**特点:**
+**\1**:
 - ✅ 简单可靠，无外部依赖
 - ✅ 人类可读的 Markdown 文件
 - ✅ 零配置开箱即用
@@ -51,7 +51,7 @@ QMD Hybrid Search Pipeline
     └── MCP Server
 ```
 
-**特点:**
+**\1**:
 - ✅ 混合检索（BM25 + 向量 + 重排序）
 - ✅ 本地运行，隐私安全
 - ✅ MCP 协议支持
@@ -85,12 +85,12 @@ class QMDMemory:
         pass
 ```
 
-**优点:**
+**\1**:
 - 标准化协议，未来可扩展
 - qmd 独立进程，故障隔离
 - 支持 HTTP 模式，模型常驻内存
 
-**缺点:**
+**\1**:
 - 需要额外的 MCP client 实现
 - 进程间通信开销
 
@@ -107,11 +107,11 @@ class QMDMemory:
         return json.loads(await result.stdout.read())
 ```
 
-**优点:**
+**\1**:
 - 实现简单，无需 MCP 客户端
 - 直接复用 qmd 的所有功能
 
-**缺点:**
+**\1**:
 - 每次调用需要启动进程
 - 冷启动慢（模型加载）
 
@@ -155,7 +155,7 @@ class QMDMemory:
 | **Chroma/Qdrant** | 成熟的向量库 | 无 BM25 混合检索 |
 | **Elasticsearch** | 功能强大 | 太重，部署复杂 |
 
-**结论:** QMD 是目前最适合 nanobot 场景的选择（本地、Markdown、混合检索、MCP）。
+**\1**: QMD 是目前最适合 nanobot 场景的选择（本地、Markdown、混合检索、MCP）。
 
 ---
 
@@ -163,9 +163,9 @@ class QMDMemory:
 
 ### 4.1 难点一：依赖安装
 
-**问题:** 需要安装 Bun、qmd、下载模型
+**\1**: 需要安装 Bun、qmd、下载模型
 
-**解决方案:**
+**\1**:
 
 ```python
 # nanobot/utils/qmd_setup.py
@@ -188,9 +188,9 @@ async def ensure_qmd_installed():
 
 ### 4.2 难点二：数据迁移
 
-**问题:** 现有 MEMORY.md 和 daily notes 需要被索引
+**\1**: 现有 MEMORY.md 和 daily notes 需要被索引
 
-**解决方案:**
+**\1**:
 
 ```python
 # nanobot/agent/memory.py
@@ -229,9 +229,9 @@ class HybridMemoryStore:
 
 ### 4.3 难点三：实时同步
 
-**问题:** 新写入的记忆需要被立即索引
+**\1**: 新写入的记忆需要被立即索引
 
-**解决方案:**
+**\1**:
 
 ```python
 class HybridMemoryStore:
@@ -250,9 +250,9 @@ class HybridMemoryStore:
 
 ### 4.4 难点四：检索整合
 
-**问题:** 需要将 qmd 结果转换为 nanobot context 格式
+**\1**: 需要将 qmd 结果转换为 nanobot context 格式
 
-**解决方案:**
+**\1**:
 
 ```python
 class HybridMemoryStore:
@@ -282,9 +282,9 @@ class HybridMemoryStore:
 
 ### 4.5 难点五：降级策略
 
-**问题:** qmd 不可用时（未安装、故障）需要平滑降级
+**\1**: qmd 不可用时（未安装、故障）需要平滑降级
 
-**解决方案:**
+**\1**:
 
 ```python
 class HybridMemoryStore:
@@ -331,9 +331,9 @@ class HybridMemoryStore:
 
 ### 4.6 难点六：性能优化
 
-**问题:** qmd daemon 管理和冷启动
+**\1**: qmd daemon 管理和冷启动
 
-**解决方案:**
+**\1**:
 
 ```python
 # nanobot/__main__.py
@@ -704,18 +704,18 @@ memory:
 
 ### 推荐：采用 QMD 集成
 
-**理由:**
+**\1**:
 
-1. **需求匹配度高:** qmd 专门为 AI agent 记忆场景设计
-2. **技术风险可控:** 渐进式集成，完善的降级策略
-3. **收益明显:** 语义检索能力将显著提升 nanobot 的记忆效果
-4. **生态协同:** MCP 协议与 nanobot 的扩展方向一致
+1. **\1**: qmd 专门为 AI agent 记忆场景设计
+2. **\1**: 渐进式集成，完善的降级策略
+3. **\1**: 语义检索能力将显著提升 nanobot 的记忆效果
+4. **\1**: MCP 协议与 nanobot 的扩展方向一致
 
 ### 实施建议
 
-1. **第一阶段:** CLI 调用方式快速验证
-2. **第二阶段:** 升级为 MCP HTTP 模式
-3. **第三阶段:** 根据使用反馈优化检索策略
+1. **\1**: CLI 调用方式快速验证
+2. **\1**: 升级为 MCP HTTP 模式
+3. **\1**: 根据使用反馈优化检索策略
 
 ---
 
@@ -730,7 +730,7 @@ memory:
 
 [github.com/thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)
 
-**定位:** 专为 Claude Code 设计的持久化记忆压缩系统
+**\1**: 专为 Claude Code 设计的持久化记忆压缩系统
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

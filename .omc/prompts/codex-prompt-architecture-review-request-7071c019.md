@@ -330,8 +330,8 @@ class ObservationHook(AgentHook):
     def _format(self, exec):
         return f"""## 🔧 {exec.tool_name} @ {exec.timestamp:%H:%M}
 
-**Args:** {exec.arguments}
-**Result:** {exec.result[:300]}...
+**\1**: {exec.arguments}
+**\1**: {exec.result[:300]}...
 """
 ```
 

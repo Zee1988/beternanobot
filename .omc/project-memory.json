@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1770813657219,
+  "lastScanned": 1770900380581,
   "projectRoot": "/Users/defi/workspace/beternanobot",
   "techStack": {
     "languages": [
@@ -53,7 +53,7 @@
       "path": "bridge",
       "purpose": null,
       "fileCount": 3,
-      "lastAccessed": 1770813657208,
+      "lastAccessed": 1770900380568,
       "keyFiles": [
         "AGENTS.md",
         "package.json",
@@ -64,7 +64,7 @@
       "path": "case",
       "purpose": null,
       "fileCount": 4,
-      "lastAccessed": 1770813657208,
+      "lastAccessed": 1770900380569,
       "keyFiles": [
         "code.gif",
         "memory.gif",
@@ -75,8 +75,8 @@
     "nanobot": {
       "path": "nanobot",
       "purpose": null,
-      "fileCount": 3,
-      "lastAccessed": 1770813657208,
+      "fileCount": 4,
+      "lastAccessed": 1770900380569,
       "keyFiles": [
         "AGENTS.md",
         "__init__.py",
@@ -86,19 +86,21 @@
     "tests": {
       "path": "tests",
       "purpose": "Test files",
-      "fileCount": 3,
-      "lastAccessed": 1770813657209,
+      "fileCount": 5,
+      "lastAccessed": 1770900380570,
       "keyFiles": [
         "test_docker.sh",
         "test_email_channel.py",
+        "test_storage_core.py",
+        "test_storage_smart.py",
         "test_tool_validation.py"
       ]
     },
     "workspace": {
       "path": "workspace",
       "purpose": null,
-      "fileCount": 5,
-      "lastAccessed": 1770813657209,
+      "fileCount": 6,
+      "lastAccessed": 1770900380570,
       "keyFiles": [
         "AGENTS.md",
         "HEARTBEAT.md",
@@ -111,7 +113,7 @@
       "path": "bridge/src",
       "purpose": "Source code",
       "fileCount": 5,
-      "lastAccessed": 1770813657209,
+      "lastAccessed": 1770900380571,
       "keyFiles": [
         "AGENTS.md",
         "index.ts",
@@ -122,7 +124,7 @@
       "path": "nanobot/config",
       "purpose": "Configuration files",
       "fileCount": 4,
-      "lastAccessed": 1770813657209,
+      "lastAccessed": 1770900380571,
       "keyFiles": [
         "AGENTS.md",
         "__init__.py",
@@ -132,304 +134,226 @@
   },
   "hotPaths": [
     {
-      "path": "",
-      "accessCount": 43,
-      "lastAccessed": 1770881189006,
-      "type": "directory"
-    },
-    {
       "path": "nanobot/agent/loop.py",
       "accessCount": 40,
-      "lastAccessed": 1770827295644,
+      "lastAccessed": 1770913210718,
       "type": "file"
     },
     {
-      "path": "nanobot/cli/commands.py",
-      "accessCount": 17,
-      "lastAccessed": 1770824279135,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/agent/context.py",
-      "accessCount": 15,
-      "lastAccessed": 1770827291577,
+      "path": "nanobot/agent/subagent.py",
+      "accessCount": 21,
+      "lastAccessed": 1770912714889,
       "type": "file"
     },
     {
       "path": "nanobot/config/schema.py",
-      "accessCount": 13,
-      "lastAccessed": 1770826382847,
+      "accessCount": 19,
+      "lastAccessed": 1770913973347,
       "type": "file"
     },
     {
-      "path": "nanobot/agent/memory.py",
-      "accessCount": 11,
-      "lastAccessed": 1770825569362,
+      "path": "nanobot/cli/commands.py",
+      "accessCount": 18,
+      "lastAccessed": 1770913968160,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_overflow_recovery.py",
+      "accessCount": 16,
+      "lastAccessed": 1770912867321,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/tools/spawn.py",
+      "accessCount": 14,
+      "lastAccessed": 1770912994398,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/tools/cron.py",
+      "accessCount": 12,
+      "lastAccessed": 1770912989467,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/subagent_registry.py",
+      "accessCount": 10,
+      "lastAccessed": 1770912989469,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_subagent_v2_functional.py",
+      "accessCount": 10,
+      "lastAccessed": 1770913480974,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_subagent_integration.py",
+      "accessCount": 10,
+      "lastAccessed": 1770936546298,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 8,
+      "lastAccessed": 1770911320909,
+      "type": "directory"
+    },
+    {
+      "path": "tests/test_subagent_registry.py",
+      "accessCount": 8,
+      "lastAccessed": 1770912867315,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/tools/message.py",
+      "accessCount": 7,
+      "lastAccessed": 1770912620137,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_litellm_integration.py",
+      "accessCount": 6,
+      "lastAccessed": 1770907023833,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/subagent_types.py",
+      "accessCount": 6,
+      "lastAccessed": 1770912989474,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_compressor.py",
+      "accessCount": 5,
+      "lastAccessed": 1770905229579,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/compressor.py",
+      "accessCount": 5,
+      "lastAccessed": 1770905500125,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/providers/base.py",
+      "accessCount": 5,
+      "lastAccessed": 1770907581805,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/tools/registry.py",
+      "accessCount": 5,
+      "lastAccessed": 1770907895066,
       "type": "file"
     },
     {
       "path": "pyproject.toml",
-      "accessCount": 10,
-      "lastAccessed": 1770824721633,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/README.md",
-      "accessCount": 6,
-      "lastAccessed": 1770815731887,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/agent/skills.py",
-      "accessCount": 6,
-      "lastAccessed": 1770827290566,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/tmux/SKILL.md",
-      "accessCount": 4,
-      "lastAccessed": 1770815505115,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/cron/SKILL.md",
-      "accessCount": 4,
-      "lastAccessed": 1770815506177,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/AGENTS.md",
-      "accessCount": 4,
-      "lastAccessed": 1770827286271,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/planning/SKILL.md",
-      "accessCount": 4,
-      "lastAccessed": 1770827534476,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/github/SKILL.md",
-      "accessCount": 3,
-      "lastAccessed": 1770815502208,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/weather/SKILL.md",
-      "accessCount": 3,
-      "lastAccessed": 1770815502399,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/skill-creator/SKILL.md",
-      "accessCount": 3,
-      "lastAccessed": 1770815502683,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 2,
-      "lastAccessed": 1770813699639,
-      "type": "file"
-    },
-    {
-      "path": "Dockerfile",
-      "accessCount": 2,
-      "lastAccessed": 1770813776943,
-      "type": "file"
-    },
-    {
-      "path": "workspace/AGENTS.md",
-      "accessCount": 2,
-      "lastAccessed": 1770813777334,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/bus/events.py",
-      "accessCount": 2,
-      "lastAccessed": 1770814126203,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/agent/tools/base.py",
-      "accessCount": 2,
-      "lastAccessed": 1770814131127,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/session/manager.py",
-      "accessCount": 2,
-      "lastAccessed": 1770814547119,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/agent/tools/shell.py",
-      "accessCount": 2,
-      "lastAccessed": 1770814547305,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/summarize/SKILL.md",
-      "accessCount": 2,
-      "lastAccessed": 1770815501838,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/utils/helpers.py",
-      "accessCount": 2,
-      "lastAccessed": 1770817651867,
-      "type": "file"
-    },
-    {
-      "path": "AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813704577,
-      "type": "file"
-    },
-    {
-      "path": "SECURITY.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813704612,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813707452,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/agent/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813710533,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/channels/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813710538,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/providers/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813710676,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/cli/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813713052,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/config/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813713276,
-      "type": "file"
-    },
-    {
-      "path": "bridge/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813716703,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/agent/tools/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813720209,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/bus/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813722233,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/session/AGENTS.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813722436,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/channels/base.py",
-      "accessCount": 1,
-      "lastAccessed": 1770813781867,
-      "type": "file"
-    },
-    {
-      "path": "CLAUDE.md",
-      "accessCount": 1,
-      "lastAccessed": 1770813848742,
+      "accessCount": 5,
+      "lastAccessed": 1770914107032,
       "type": "file"
     },
     {
       "path": "nanobot/bus/queue.py",
-      "accessCount": 1,
-      "lastAccessed": 1770814130203,
+      "accessCount": 5,
+      "lastAccessed": 1770936488531,
       "type": "file"
     },
     {
-      "path": "nanobot/agent/tools/filesystem.py",
-      "accessCount": 1,
-      "lastAccessed": 1770814146608,
+      "path": "nanobot/session/manager.py",
+      "accessCount": 4,
+      "lastAccessed": 1770900961756,
       "type": "file"
     },
     {
-      "path": "workspace/memory/MEMORY.md",
-      "accessCount": 1,
-      "lastAccessed": 1770814194303,
+      "path": "tests/test_session_history.py",
+      "accessCount": 4,
+      "lastAccessed": 1770905230848,
       "type": "file"
+    },
+    {
+      "path": "nanobot/bus/events.py",
+      "accessCount": 4,
+      "lastAccessed": 1770907582459,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/tools/base.py",
+      "accessCount": 4,
+      "lastAccessed": 1770907888801,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_sweeper.py",
+      "accessCount": 4,
+      "lastAccessed": 1770910768707,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_subagent_types.py",
+      "accessCount": 4,
+      "lastAccessed": 1770912745034,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_subagent_improved.py",
+      "accessCount": 4,
+      "lastAccessed": 1770912867329,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/providers/litellm_provider.py",
+      "accessCount": 4,
+      "lastAccessed": 1770913938351,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/storage/chunker.py",
+      "accessCount": 2,
+      "lastAccessed": 1770900701181,
+      "type": "file"
+    },
+    {
+      "path": "tests/test_tool_validation.py",
+      "accessCount": 2,
+      "lastAccessed": 1770900701819,
+      "type": "file"
+    },
+    {
+      "path": "nanobot",
+      "accessCount": 2,
+      "lastAccessed": 1770900963287,
+      "type": "directory"
+    },
+    {
+      "path": "tests/test_subagent_v2_verification.py",
+      "accessCount": 2,
+      "lastAccessed": 1770913028372,
+      "type": "file"
+    },
+    {
+      "path": "nanobot/agent/context.py",
+      "accessCount": 1,
+      "lastAccessed": 1770904234263,
+      "type": "file"
+    },
+    {
+      "path": "tests",
+      "accessCount": 1,
+      "lastAccessed": 1770907596872,
+      "type": "directory"
+    },
+    {
+      "path": "nanobot/agent/tools",
+      "accessCount": 1,
+      "lastAccessed": 1770907923920,
+      "type": "directory"
     },
     {
       "path": "nanobot/config/loader.py",
       "accessCount": 1,
-      "lastAccessed": 1770814554410,
+      "lastAccessed": 1770913938353,
       "type": "file"
-    },
-    {
-      "path": "nanobot/skills/tmux/scripts/find-sessions.sh",
-      "accessCount": 1,
-      "lastAccessed": 1770815514293,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/tmux/scripts/wait-for-text.sh",
-      "accessCount": 1,
-      "lastAccessed": 1770815514295,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/planning/templates/task_plan.md",
-      "accessCount": 1,
-      "lastAccessed": 1770815699237,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/planning/templates/findings.md",
-      "accessCount": 1,
-      "lastAccessed": 1770815700339,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/planning/templates/progress.md",
-      "accessCount": 1,
-      "lastAccessed": 1770815703765,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/skills/planning/scripts/init-session.sh",
-      "accessCount": 1,
-      "lastAccessed": 1770815710308,
-      "type": "file"
-    },
-    {
-      "path": "nanobot/agent",
-      "accessCount": 1,
-      "lastAccessed": 1770816443558,
-      "type": "directory"
     }
   ],
   "userDirectives": []

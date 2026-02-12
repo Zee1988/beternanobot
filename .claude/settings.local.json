@@ -79,7 +79,11 @@
       "WebFetch(domain:www.anthropic.com)",
       "WebFetch(domain:agentic-patterns.com)",
       "Bash(python -m base64:*)",
-      "Bash(if not exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\plans\" mkdir \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\plans\")"
+      "Bash(if not exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\plans\" mkdir \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\plans\")",
+      "Bash(/Users/defi/workspace/beternanobot/.venv/bin/python:*)",
+      "Bash(/Users/defi/workspace/beternanobot/.venv/bin/pip list:*)",
+      "Bash(/Users/defi/workspace/beternanobot/.venv/bin/pip install:*)",
+      "Bash(nanobot --help)"
     ]
   }
 }

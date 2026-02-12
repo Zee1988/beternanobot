@@ -154,6 +154,15 @@ class ChannelsConfig(BaseModel):
     qq: QQConfig = Field(default_factory=QQConfig)
 
 
+class SubagentConfig(BaseModel):
+    """子代理配置."""
+    max_concurrent: int = 5           # 最大并发子代理数
+    timeout_seconds: int = 300        # 单个子代理超时 (秒)
+    max_iterations: int = 15          # 子代理最大工具迭代次数
+    model: str | None = None          # 子代理专用模型 (None = 继承主模型)
+    nesting_enabled: bool = False     # 是否允许子代理嵌套 spawn (简化 M3)
+
+
 class AgentDefaults(BaseModel):
     """Default agent configuration."""
     workspace: str = "~/.nanobot/workspace"
@@ -168,6 +177,7 @@ class AgentDefaults(BaseModel):
 class AgentsConfig(BaseModel):
     """Agent configuration."""
     defaults: AgentDefaults = Field(default_factory=AgentDefaults)
+    subagent: SubagentConfig = Field(default_factory=SubagentConfig)
 
 
 class ProviderConfig(BaseModel):

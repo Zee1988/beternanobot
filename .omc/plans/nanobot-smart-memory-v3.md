@@ -775,8 +775,8 @@ class ObservationHook(AgentHook):
 
         content = (
             f"## {execution.tool_name} @ {execution.timestamp:%H:%M}\n\n"
-            f"**Args:** {args_preview}\n"
-            f"**Result:** {result_preview}\n"
+            f"**\1**: {args_preview}\n"
+            f"**\1**: {result_preview}\n"
         )
 
         # 1. 写入 Markdown（人类可读）

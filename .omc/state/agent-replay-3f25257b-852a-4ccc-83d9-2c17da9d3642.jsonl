@@ -1,0 +1,9 @@
+{"t":0,"agent":"a1b74e8","agent_type":"test-engineer","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a1b74e8","agent_type":"test-engineer","event":"agent_stop","success":true}
+{"t":0,"agent":"aa895b7","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a084779","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a886b41","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a2e5c4f","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a189a0d","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"af2a2db","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"aca7aa2","agent_type":"unknown","event":"agent_stop","success":true}

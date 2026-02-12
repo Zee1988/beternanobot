@@ -369,6 +369,7 @@ def gateway(
         context_window_override=config.agents.defaults.context_window_override,
         max_tokens=config.agents.defaults.max_tokens,
         temperature=config.agents.defaults.temperature,
+        subagent_config=config.agents.subagent,
     )
     
     # Set cron callback (needs agent)
@@ -469,6 +470,7 @@ def agent(
         bus=bus,
         provider=provider,
         workspace=config.workspace_path,
+        model=config.agents.defaults.model,
         brave_api_key=config.tools.web.search.api_key or None,
         exec_config=config.tools.exec,
         restrict_to_workspace=config.tools.restrict_to_workspace,
@@ -477,6 +479,7 @@ def agent(
         context_window_override=config.agents.defaults.context_window_override,
         max_tokens=config.agents.defaults.max_tokens,
         temperature=config.agents.defaults.temperature,
+        subagent_config=config.agents.subagent,
     )
     
     # Show spinner when logs are off (no output to miss); skip when logs are on
