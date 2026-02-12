@@ -1,7 +1,26 @@
 {
-  "agents": [],
-  "total_spawned": 0,
-  "total_completed": 0,
+  "agents": [
+    {
+      "agent_id": "ab8a290",
+      "agent_type": "Bash",
+      "started_at": "2026-02-12T09:19:34.338Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-02-12T09:20:12.389Z",
+      "duration_ms": 38051
+    },
+    {
+      "agent_id": "a1d27ea",
+      "agent_type": "oh-my-claudecode:architect",
+      "started_at": "2026-02-12T09:29:18.598Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-02-12T09:37:45.373Z",
+      "duration_ms": 506775
+    }
+  ],
+  "total_spawned": 2,
+  "total_completed": 2,
   "total_failed": 0,
-  "last_updated": "2026-02-12T07:31:49.280Z"
+  "last_updated": "2026-02-12T09:38:14.339Z"
 }

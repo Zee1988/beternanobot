@@ -75,7 +75,11 @@
       "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ecomode-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ecomode-state.json\")",
       "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultraqa-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultraqa-state.json\")",
       "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultrapilot-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\ultrapilot-state.json\")",
-      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\pipeline-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\pipeline-state.json\")"
+      "Bash(if exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\pipeline-state.json\" del \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\state\\\\pipeline-state.json\")",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:agentic-patterns.com)",
+      "Bash(python -m base64:*)",
+      "Bash(if not exist \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\plans\" mkdir \"D:\\\\workSpace\\\\beternanobot\\\\.omc\\\\plans\")"
     ]
   }
 }

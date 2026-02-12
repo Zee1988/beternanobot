@@ -85,3 +85,17 @@
 {"t":0,"agent":"a88adb1","agent_type":"unknown","event":"agent_stop","success":true}
 {"t":0,"agent":"a3924a5","agent_type":"unknown","event":"agent_stop","success":true}
 {"t":0,"agent":"a4d1eda","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"aeac957","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"ae83ad7","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a26b071","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"abe12ff","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a305ee6","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a55faf8","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"ab8a290","agent_type":"Bash","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a255a09","agent_type":"Bash","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ab8a290","agent_type":"Bash","event":"agent_stop","success":true,"duration_ms":38051}
+{"t":0,"agent":"a255a09","agent_type":"Bash","event":"agent_stop","success":true}
+{"t":0,"agent":"aed867a","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a1d27ea","agent_type":"architect","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a1d27ea","agent_type":"architect","event":"agent_stop","success":true,"duration_ms":506775}
+{"t":0,"agent":"a2ca222","agent_type":"unknown","event":"agent_stop","success":true}
