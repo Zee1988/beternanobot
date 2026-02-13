@@ -336,106 +336,216 @@ def gateway(
     from nanobot.cron.service import CronService
     from nanobot.cron.types import CronJob
     from nanobot.heartbeat.service import HeartbeatService
-    
+    from nanobot.gateway.health import HealthServer
+    from nanobot.watchdog.notify import notify_all_sync
+
     if verbose:
         import logging
         logging.basicConfig(level=logging.DEBUG)
-    
+
     console.print(f"{__logo__} Starting nanobot gateway on port {port}...")
-    
+
     config = load_config()
-    bus = MessageBus()
-    provider = _make_provider(config)
-    session_manager = SessionManager(config.workspace_path)
-    
-    # Create cron service first (callback set after agent creation)
-    cron_store_path = get_data_dir() / "cron" / "jobs.json"
-    cron = CronService(cron_store_path)
-    
-    # Create agent with cron service
-    agent = AgentLoop(
-        bus=bus,
-        provider=provider,
-        workspace=config.workspace_path,
-        model=config.agents.defaults.model,
-        max_iterations=config.agents.defaults.max_tool_iterations,
-        brave_api_key=config.tools.web.search.api_key or None,
-        exec_config=config.tools.exec,
-        cron_service=cron,
-        restrict_to_workspace=config.tools.restrict_to_workspace,
-        session_manager=session_manager,
-        memory_config=config.memory.model_dump() if config.memory.enabled else None,
-        context_compression=config.agents.defaults.context_compression,
-        context_window_override=config.agents.defaults.context_window_override,
-        max_tokens=config.agents.defaults.max_tokens,
-        temperature=config.agents.defaults.temperature,
-        subagent_config=config.agents.subagent,
-    )
-    
-    # Set cron callback (needs agent)
-    async def on_cron_job(job: CronJob) -> str | None:
-        """Execute a cron job through the agent."""
-        response = await agent.process_direct(
-            job.payload.message,
-            session_key=f"cron:{job.id}",
-            channel=job.payload.channel or "cli",
-            chat_id=job.payload.to or "direct",
+    health_port = config.watchdog.health_port or (port + 1)
+
+    # -- in-process retry loop (catches transient async exceptions) ----------
+    max_retries = 5
+
+    def _run_gateway_once():
+        """Single gateway lifecycle — all objects are local, no closure leaks."""
+        bus = MessageBus()
+        provider = _make_provider(config)
+        session_manager = SessionManager(config.workspace_path)
+
+        # Create cron service first (callback set after agent creation)
+        cron_store_path = get_data_dir() / "cron" / "jobs.json"
+        cron = CronService(cron_store_path)
+
+        # Create agent with cron service
+        agent = AgentLoop(
+            bus=bus,
+            provider=provider,
+            workspace=config.workspace_path,
+            model=config.agents.defaults.model,
+            max_iterations=config.agents.defaults.max_tool_iterations,
+            brave_api_key=config.tools.web.search.api_key or None,
+            exec_config=config.tools.exec,
+            cron_service=cron,
+            restrict_to_workspace=config.tools.restrict_to_workspace,
+            session_manager=session_manager,
+            memory_config=config.memory.model_dump() if config.memory.enabled else None,
+            context_compression=config.agents.defaults.context_compression,
+            context_window_override=config.agents.defaults.context_window_override,
+            max_tokens=config.agents.defaults.max_tokens,
+            temperature=config.agents.defaults.temperature,
+            subagent_config=config.agents.subagent,
         )
-        if job.payload.deliver and job.payload.to:
-            from nanobot.bus.events import OutboundMessage
-            await bus.publish_outbound(OutboundMessage(
+
+        # Set cron callback (needs agent)
+        async def on_cron_job(job: CronJob) -> str | None:
+            """Execute a cron job through the agent."""
+            response = await agent.process_direct(
+                job.payload.message,
+                session_key=f"cron:{job.id}",
                 channel=job.payload.channel or "cli",
-                chat_id=job.payload.to,
-                content=response or ""
-            ))
-        return response
-    cron.on_job = on_cron_job
-    
-    # Create heartbeat service
-    async def on_heartbeat(prompt: str) -> str:
-        """Execute heartbeat through the agent."""
-        return await agent.process_direct(prompt, session_key="heartbeat")
-    
-    heartbeat = HeartbeatService(
-        workspace=config.workspace_path,
-        on_heartbeat=on_heartbeat,
-        interval_s=30 * 60,  # 30 minutes
-        enabled=True
-    )
-    
-    # Create channel manager
-    channels = ChannelManager(config, bus, session_manager=session_manager)
-    
-    if channels.enabled_channels:
-        console.print(f"[green]✓[/green] Channels enabled: {', '.join(channels.enabled_channels)}")
-    else:
-        console.print("[yellow]Warning: No channels enabled[/yellow]")
-    
-    cron_status = cron.status()
-    if cron_status["jobs"] > 0:
-        console.print(f"[green]✓[/green] Cron: {cron_status['jobs']} scheduled jobs")
-    
-    console.print(f"[green]✓[/green] Heartbeat: every 30m")
-    
-    async def run():
-        try:
-            await agent.initialize_memory()
-            await cron.start()
-            await heartbeat.start()
-            await asyncio.gather(
-                agent.run(),
-                channels.start_all(),
+                chat_id=job.payload.to or "direct",
             )
+            if job.payload.deliver and job.payload.to:
+                from nanobot.bus.events import OutboundMessage
+                await bus.publish_outbound(OutboundMessage(
+                    channel=job.payload.channel or "cli",
+                    chat_id=job.payload.to,
+                    content=response or ""
+                ))
+            return response
+        cron.on_job = on_cron_job
+
+        # Create heartbeat service
+        async def on_heartbeat(prompt: str) -> str:
+            """Execute heartbeat through the agent."""
+            return await agent.process_direct(prompt, session_key="heartbeat")
+
+        heartbeat = HeartbeatService(
+            workspace=config.workspace_path,
+            on_heartbeat=on_heartbeat,
+            interval_s=30 * 60,  # 30 minutes
+            enabled=True
+        )
+
+        # Create channel manager
+        channels = ChannelManager(config, bus, session_manager=session_manager)
+
+        if channels.enabled_channels:
+            console.print(f"[green]✓[/green] Channels enabled: {', '.join(channels.enabled_channels)}")
+        else:
+            console.print("[yellow]Warning: No channels enabled[/yellow]")
+
+        cron_status = cron.status()
+        if cron_status["jobs"] > 0:
+            console.print(f"[green]✓[/green] Cron: {cron_status['jobs']} scheduled jobs")
+
+        console.print(f"[green]✓[/green] Heartbeat: every 30m")
+        console.print(f"[green]✓[/green] Health endpoint: http://127.0.0.1:{health_port}/")
+
+        # Health server + pulse task
+        health = HealthServer(port=health_port)
+
+        async def run():
+            try:
+                await health.start()
+                await agent.initialize_memory()
+                await cron.start()
+                await heartbeat.start()
+
+                async def _health_pulse():
+                    while True:
+                        await asyncio.sleep(30)
+                        health.heartbeat()
+
+                pulse_task = asyncio.create_task(_health_pulse())
+                try:
+                    await asyncio.gather(
+                        agent.run(),
+                        channels.start_all(),
+                    )
+                finally:
+                    pulse_task.cancel()
+            except KeyboardInterrupt:
+                pass
+            finally:
+                console.print("\nShutting down...")
+                heartbeat.stop()
+                cron.stop()
+                agent.stop()
+                await channels.stop_all()
+                await health.stop()
+
+        asyncio.run(run())
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            _run_gateway_once()
+            break  # Clean exit — no retry needed
+
         except KeyboardInterrupt:
-            console.print("\nShutting down...")
-            heartbeat.stop()
-            cron.stop()
-            agent.stop()
-            await channels.stop_all()
-    
-    asyncio.run(run())
+            break
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"Gateway crashed (attempt {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                wait = min(2 ** attempt, 30)
+                console.print(f"[yellow]Restarting in {wait}s (attempt {attempt}/{max_retries})...[/yellow]")
+                try:
+                    notify_all_sync(config, f"⚠️ nanobot gateway crashed: {e}\nAuto-restarting (attempt {attempt}/{max_retries})...")
+                except Exception:
+                    pass
+                import time
+                time.sleep(wait)
+            else:
+                console.print("[red]Max retries reached. Gateway stopped.[/red]")
+                try:
+                    notify_all_sync(config, f"🛑 nanobot gateway stopped after {max_retries} failed restarts.\nLast error: {e}")
+                except Exception:
+                    pass
 
 
+
+
+# ============================================================================
+# Watchdog Command
+# ============================================================================
+
+
+@app.command()
+def watchdog(
+    port: int = typer.Option(18790, "--port", "-p", help="Gateway port to monitor"),
+    health_port: int = typer.Option(None, "--health-port", help="Health endpoint port (default: gateway port + 1)"),
+    interval: int = typer.Option(None, "--interval", "-i", help="Seconds between health checks"),
+    max_failures: int = typer.Option(None, "--max-failures", help="Consecutive failures before restart"),
+    max_restarts: int = typer.Option(None, "--max-restarts", help="Max restart attempts before giving up"),
+):
+    """Run external watchdog that monitors and restarts the gateway process."""
+    from nanobot.config.loader import load_config
+    from nanobot.watchdog.service import WatchdogService
+    from nanobot.watchdog.notify import notify_all_sync
+
+    config = load_config()
+
+    # Config values as defaults, CLI flags override
+    wd_cfg = config.watchdog
+    effective_health_port = health_port or wd_cfg.health_port or (port + 1)
+    effective_interval = interval or wd_cfg.check_interval
+    effective_max_failures = max_failures or wd_cfg.max_failures
+    effective_max_restarts = max_restarts or wd_cfg.max_restarts
+
+    console.print(f"{__logo__} Starting watchdog (gateway port={port}, health port={effective_health_port})")
+
+    svc = WatchdogService(
+        gateway_port=port,
+        health_port=effective_health_port,
+        check_interval=effective_interval,
+        max_failures=effective_max_failures,
+        max_restarts=effective_max_restarts,
+    )
+
+    def on_restart(reason: str, count: int) -> None:
+        msg = f"⚠️ Watchdog restarted gateway (attempt {count}): {reason}"
+        console.print(f"[yellow]{msg}[/yellow]")
+        try:
+            notify_all_sync(config, msg)
+        except Exception:
+            pass
+
+    try:
+        svc.run(on_restart=on_restart)
+    except KeyboardInterrupt:
+        console.print("\nWatchdog stopped.")
+    finally:
+        if svc.restart_count >= effective_max_restarts:
+            try:
+                notify_all_sync(config, f"🛑 Watchdog gave up after {effective_max_restarts} restarts.")
+            except Exception:
+                pass
 
 
 # ============================================================================

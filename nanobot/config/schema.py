@@ -209,6 +209,14 @@ class GatewayConfig(BaseModel):
     port: int = 18790
 
 
+class WatchdogConfig(BaseModel):
+    """Watchdog monitoring configuration."""
+    health_port: int | None = None      # Default: gateway.port + 1
+    check_interval: int = 30            # Seconds between health checks
+    max_failures: int = 3               # Consecutive failures before restart
+    max_restarts: int = 20              # Max restart attempts before giving up
+
+
 class WebSearchConfig(BaseModel):
     """Web search tool configuration."""
     api_key: str = ""  # Brave Search API key
@@ -257,6 +265,7 @@ class Config(BaseSettings):
     channels: ChannelsConfig = Field(default_factory=ChannelsConfig)
     providers: ProvidersConfig = Field(default_factory=ProvidersConfig)
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
+    watchdog: WatchdogConfig = Field(default_factory=WatchdogConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     
