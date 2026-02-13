@@ -20,7 +20,7 @@ from nanobot.agent.subagent_types import SubagentEntry, SubagentStatus
 from nanobot.agent.tools.filesystem import ListDirTool, ReadFileTool, WriteFileTool
 from nanobot.agent.tools.registry import ToolRegistry
 from nanobot.agent.tools.shell import ExecTool
-from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
+from nanobot.agent.tools.web import WebFetchTool
 from nanobot.bus.events import InboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.providers.base import ContextOverflowError, LLMProvider
@@ -41,7 +41,6 @@ class SubagentManager:
         workspace: Path,
         bus: MessageBus,
         model: str | None = None,
-        brave_api_key: str | None = None,
         exec_config: "ExecToolConfig | None" = None,  # noqa: F821
         restrict_to_workspace: bool = False,
         subagent_config: "SubagentConfig | None" = None,  # noqa: F821
@@ -50,7 +49,6 @@ class SubagentManager:
         self.provider = provider
         self.workspace = workspace
         self.bus = bus
-        self.brave_api_key = brave_api_key
         self.exec_config = exec_config or ExecToolConfig()
         self.restrict_to_workspace = restrict_to_workspace
 
@@ -80,6 +78,7 @@ class SubagentManager:
         origin_channel: str = "cli",
         origin_chat_id: str = "direct",
         is_nested: bool = False,
+        plan_file: str | None = None,
     ) -> str:
         """Spawn a subagent to execute a task in the background."""
         self._ensure_registry_loaded()
@@ -87,6 +86,20 @@ class SubagentManager:
         # 嵌套防护 (简化 M3: 单层检查即可)
         if is_nested and not self._config.nesting_enabled:
             return "Error: Subagent nesting is disabled."
+
+        # Plan file 验证
+        plan_content: str | None = None
+        if plan_file is not None:
+            plan_path = Path(plan_file)
+            if not plan_path.exists():
+                return f"Error: Plan file not found: {plan_file}"
+            try:
+                raw = plan_path.read_text(encoding="utf-8")
+                if not raw.strip():
+                    return f"Error: Plan file is empty: {plan_file}"
+                plan_content = raw.strip()
+            except Exception as exc:
+                return f"Error: Failed to read plan file: {exc}"
 
         # 模型格式验证 (H4)
         model = self.model
@@ -118,7 +131,8 @@ class SubagentManager:
 
         # 创建带超时的后台任务 (C2: asyncio.wait_for 是唯一超时源)
         bg_task = asyncio.create_task(
-            self._run_with_timeout(task_id, task, display_label, origin)
+            self._run_with_timeout(task_id, task, display_label, origin,
+                                   plan_content=plan_content)
         )
         self._running_tasks[task_id] = bg_task
         bg_task.add_done_callback(lambda _: self._running_tasks.pop(task_id, None))
@@ -135,6 +149,7 @@ class SubagentManager:
         task: str,
         label: str,
         origin: dict[str, str],
+        plan_content: str | None = None,
     ) -> None:
         """用 asyncio.wait_for 包装子代理执行 (C2: 唯一超时源)."""
         entry = self.registry.get(task_id)
@@ -143,7 +158,8 @@ class SubagentManager:
 
         try:
             await asyncio.wait_for(
-                self._run_subagent(task_id, task, label, origin),
+                self._run_subagent(task_id, task, label, origin,
+                                   plan_content=plan_content),
                 timeout=self._config.timeout_seconds,
             )
         except asyncio.TimeoutError:
@@ -171,6 +187,7 @@ class SubagentManager:
         task: str,
         label: str,
         origin: dict[str, str],
+        plan_content: str | None = None,
     ) -> None:
         """Execute the subagent task and announce the result."""
         logger.info(f"Subagent [{task_id}] starting task: {label}")
@@ -188,10 +205,10 @@ class SubagentManager:
                 timeout=self.exec_config.timeout,
                 restrict_to_workspace=self.restrict_to_workspace,
             ))
-            tools.register(WebSearchTool(api_key=self.brave_api_key))
+            # Web search via tavily skill, only fetch available
             tools.register(WebFetchTool())
 
-            system_prompt = self._build_subagent_prompt(task)
+            system_prompt = self._build_subagent_prompt(task, plan_content=plan_content)
             messages: list[dict[str, Any]] = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": task},
@@ -321,11 +338,11 @@ class SubagentManager:
             f"{origin['channel']}:{origin['chat_id']}"
         )
 
-    def _build_subagent_prompt(self, task: str) -> str:
+    def _build_subagent_prompt(self, task: str, plan_content: str | None = None) -> str:
         """Build a focused system prompt for the subagent.
 
         优先从 workspace/AGENTS.md 读取自定义指令，
-        回退到内置默认提示词。
+        回退到内置默认提示词。可选注入 plan_file 内容。
         """
         custom_instructions = ""
         agents_md = self.workspace / "AGENTS.md"
@@ -339,6 +356,20 @@ class SubagentManager:
                     )
             except Exception:
                 pass  # 读取失败时使用默认提示词
+
+        plan_section = ""
+        if plan_content:
+            # 大文件截断保护: 限制 plan 内容不超过 8000 字符
+            max_plan_chars = 8000
+            trimmed = plan_content[:max_plan_chars]
+            if len(plan_content) > max_plan_chars:
+                trimmed += "\n\n... [plan truncated, original length: " \
+                           f"{len(plan_content)} chars]"
+            plan_section = (
+                "\n\n## Execution Plan\n"
+                "Follow this plan step-by-step:\n\n"
+                f"{trimmed}\n"
+            )
 
         return f"""# Subagent
 
@@ -366,7 +397,7 @@ You are a subagent spawned by the main agent to complete a specific task.
 
 ## Workspace
 Your workspace is at: {self.workspace}
-{custom_instructions}
+{plan_section}{custom_instructions}
 When you have completed the task, provide a clear summary of your findings or actions."""
 
     @staticmethod
