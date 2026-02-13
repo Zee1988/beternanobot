@@ -379,6 +379,7 @@ def gateway(
             max_tokens=config.agents.defaults.max_tokens,
             temperature=config.agents.defaults.temperature,
             subagent_config=config.agents.subagent,
+            llm_call_timeout=config.agents.defaults.llm_call_timeout,
         )
 
         # Set cron callback (needs agent)
@@ -590,6 +591,7 @@ def agent(
         max_tokens=config.agents.defaults.max_tokens,
         temperature=config.agents.defaults.temperature,
         subagent_config=config.agents.subagent,
+        llm_call_timeout=config.agents.defaults.llm_call_timeout,
     )
     
     # Show spinner when logs are off (no output to miss); skip when logs are on

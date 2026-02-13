@@ -172,6 +172,7 @@ class AgentDefaults(BaseModel):
     max_tool_iterations: int = 20
     context_compression: bool = True            # 上下文压缩总开关
     context_window_override: int | None = None  # 手动覆盖上下文窗口大小
+    llm_call_timeout: int = 120                 # LLM 单次调用超时 (秒)
 
 
 class AgentsConfig(BaseModel):

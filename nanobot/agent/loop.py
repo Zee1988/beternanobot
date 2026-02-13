@@ -61,6 +61,7 @@ class AgentLoop:
         max_tokens: int = 8192,
         temperature: float = 0.7,
         subagent_config: "SubagentConfig | None" = None,  # noqa: F821
+        llm_call_timeout: int = 120,
     ):
         from nanobot.config.schema import ExecToolConfig
         self.bus = bus
@@ -79,6 +80,11 @@ class AgentLoop:
         )
         self._max_tokens = max_tokens
         self._temperature = temperature
+        self._llm_timeout = llm_call_timeout
+
+        # 并发消息处理: 每 session 一把锁，防止同用户消息竞争
+        self._session_locks: dict[str, asyncio.Lock] = {}
+        self._active_tasks: set[asyncio.Task] = set()
 
         self.context = ContextBuilder(workspace, memory_config=memory_config)
         self.sessions = session_manager or SessionManager(workspace)
@@ -133,6 +139,25 @@ class AgentLoop:
         if self.cron_service:
             self.tools.register(CronTool(self.cron_service))
 
+    async def _call_llm_with_timeout(
+        self,
+        messages: list[dict],
+        tools_defs: list[dict] | None,
+        max_tokens: int,
+        temperature: float,
+    ) -> LLMResponse:
+        """Single LLM call wrapped with asyncio.wait_for timeout."""
+        return await asyncio.wait_for(
+            self.provider.chat(
+                messages=messages,
+                tools=tools_defs,
+                model=self.model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            ),
+            timeout=self._llm_timeout,
+        )
+
     async def _call_llm_with_recovery(
         self,
         messages: list[dict],
@@ -140,7 +165,7 @@ class AgentLoop:
         max_tokens: int | None = None,
         temperature: float | None = None,
     ) -> LLMResponse:
-        """Shared LLM call with compression + overflow recovery."""
+        """Shared LLM call with timeout + compression + overflow recovery."""
         _max_tokens = max_tokens if max_tokens is not None else self._max_tokens
         _temperature = temperature if temperature is not None else self._temperature
 
@@ -148,23 +173,24 @@ class AgentLoop:
             messages = compress_messages(messages, self._context_window, self.model)
 
         try:
-            return await self.provider.chat(
-                messages=messages,
-                tools=tools_defs,
-                model=self.model,
-                max_tokens=_max_tokens,
-                temperature=_temperature,
+            return await self._call_llm_with_timeout(
+                messages, tools_defs, _max_tokens, _temperature,
             )
+        except asyncio.TimeoutError:
+            logger.warning(f"LLM call timed out after {self._llm_timeout}s, retrying...")
+            try:
+                return await self._call_llm_with_timeout(
+                    messages, tools_defs, _max_tokens, _temperature,
+                )
+            except asyncio.TimeoutError:
+                logger.error("LLM call timed out twice, giving up")
+                return LLMResponse(content="请求超时，请稍后重试。", finish_reason="error")
         except ContextOverflowError:
             logger.warning("Context overflow, applying emergency compression")
             messages = emergency_compress(messages, self._context_window, self.model)
             try:
-                return await self.provider.chat(
-                    messages=messages,
-                    tools=tools_defs,
-                    model=self.model,
-                    max_tokens=_max_tokens,
-                    temperature=_temperature,
+                return await self._call_llm_with_timeout(
+                    messages, tools_defs, _max_tokens, _temperature,
                 )
             except ContextOverflowError:
                 logger.error("Emergency compression failed, context still too large")
@@ -173,9 +199,9 @@ class AgentLoop:
                 return LLMResponse(content=msg, finish_reason="error")
 
     async def run(self) -> None:
-        """Run the agent loop, processing messages from the bus."""
+        """Run the agent loop, processing messages from the bus concurrently."""
         self._running = True
-        logger.info("Agent loop started")
+        logger.info("Agent loop started (concurrent mode)")
 
         # 启动子代理 sweeper (gateway 模式)
         await self.subagents.start_sweeper()
@@ -183,34 +209,87 @@ class AgentLoop:
         try:
             while self._running:
                 try:
-                    # Wait for next message
                     msg = await asyncio.wait_for(
                         self.bus.consume_inbound(),
                         timeout=1.0
                     )
-
-                    # Process it
-                    try:
-                        response = await self._process_message(msg)
-                        if response:
-                            await self.bus.publish_outbound(response)
-                    except Exception as e:
-                        logger.error(f"Error processing message: {e}")
-                        # Send error response
-                        await self.bus.publish_outbound(OutboundMessage(
-                            channel=msg.channel,
-                            chat_id=msg.chat_id,
-                            content=f"Sorry, I encountered an error: {str(e)}"
-                        ))
+                    # 并发派发: 每条消息一个 task，不阻塞主循环
+                    task = asyncio.create_task(self._handle_message(msg))
+                    self._active_tasks.add(task)
+                    task.add_done_callback(self._active_tasks.discard)
                 except asyncio.TimeoutError:
                     continue
         finally:
             await self.subagents.stop_sweeper()
+            # 等待所有活跃任务完成 (带超时)
+            if self._active_tasks:
+                logger.info(f"Waiting for {len(self._active_tasks)} active tasks to finish...")
+                done, pending = await asyncio.wait(
+                    self._active_tasks, timeout=30.0
+                )
+                for t in pending:
+                    t.cancel()
+                if pending:
+                    logger.warning(f"Force-cancelled {len(pending)} tasks on shutdown")
 
     def stop(self) -> None:
         """Stop the agent loop."""
         self._running = False
         logger.info("Agent loop stopping")
+
+    def _get_session_lock(self, session_key: str) -> asyncio.Lock:
+        """获取 session 对应的锁 (懒创建)."""
+        if session_key not in self._session_locks:
+            self._session_locks[session_key] = asyncio.Lock()
+        return self._session_locks[session_key]
+
+    async def _heartbeat(self, channel: str, chat_id: str, delay: float = 30.0):
+        """处理超时后自动发送进度提示."""
+        await asyncio.sleep(delay)
+        await self.bus.publish_outbound(OutboundMessage(
+            channel=channel,
+            chat_id=chat_id,
+            content="仍在处理中，请稍候...",
+        ))
+
+    async def _handle_message(self, msg: InboundMessage) -> None:
+        """并发安全的消息处理入口: session 加锁 + 心跳 + 异常兜底."""
+        # 确定 session key (system 消息用 origin session)
+        if msg.channel == "system" and ":" in msg.chat_id:
+            session_key = msg.chat_id  # "origin_channel:origin_chat_id"
+        else:
+            session_key = msg.session_key
+
+        lock = self._get_session_lock(session_key)
+
+        async with lock:
+            # 非 system 消息启动心跳
+            heartbeat_task = None
+            if msg.channel != "system":
+                heartbeat_task = asyncio.create_task(
+                    self._heartbeat(msg.channel, msg.chat_id)
+                )
+
+            try:
+                response = await self._process_message(msg)
+                if response:
+                    await self.bus.publish_outbound(response)
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
+                # 确定回复目标
+                if msg.channel == "system" and ":" in msg.chat_id:
+                    parts = msg.chat_id.split(":", 1)
+                    ch, cid = parts[0], parts[1]
+                else:
+                    ch, cid = msg.channel, msg.chat_id
+                await self.bus.publish_outbound(OutboundMessage(
+                    channel=ch,
+                    chat_id=cid,
+                    content=f"Sorry, I encountered an error: {str(e)}"
+                ))
+            finally:
+                if heartbeat_task and not heartbeat_task.done():
+                    heartbeat_task.cancel()
 
     async def _process_message(self, msg: InboundMessage) -> OutboundMessage | None:
         """
