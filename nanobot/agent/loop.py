@@ -32,12 +32,22 @@ from nanobot.storage.retrieval import MEMORY_CONTEXT_PREFIX
 _ORIGIN_TOOLS = {"spawn", "message", "cron"}
 
 # 检测 LLM 输出代码块但未调用工具的模式 (tool-call 退化)
-_CODE_BLOCK_RE = re.compile(r"```(?:bash|sh|shell|python|cmd|powershell)\b", re.IGNORECASE)
+_CODE_BLOCK_RE = re.compile(
+    r"```(?:bash|sh|shell|python|cmd|powershell|json|javascript|js)\b",
+    re.IGNORECASE,
+)
+_MAX_NUDGES = 3
 
 _TOOL_NUDGE = (
     "You have tools available. Do NOT output shell commands or code in markdown "
     "code blocks. Instead, call the appropriate tool (e.g. exec for shell commands, "
     "read_file for reading files). Execute the action now using a tool call."
+)
+
+_TOOL_NUDGE_HARD = (
+    "STOP outputting code blocks. You MUST use function calling / tool_use to "
+    "execute actions. For shell commands, call the 'exec' tool with a 'command' "
+    "parameter. Do NOT wrap it in ```json or ```bash. Make an actual tool call NOW."
 )
 
 
@@ -347,6 +357,7 @@ class AgentLoop:
 
         # Agent loop
         iteration = 0
+        nudge_count = 0
         final_content = None
 
         while iteration < self.max_iterations:
@@ -399,17 +410,20 @@ class AgentLoop:
                 # No tool calls — check for code-block-without-tool-call pattern
                 content = response.content or ""
                 if (
-                    iteration == 1
+                    nudge_count < _MAX_NUDGES
                     and _CODE_BLOCK_RE.search(content)
                 ):
-                    # Model output code blocks instead of calling tools.
-                    # Nudge it to retry with actual tool calls.
-                    logger.warning("Detected code-block output without tool call, nudging model")
+                    nudge_count += 1
+                    nudge = _TOOL_NUDGE if nudge_count == 1 else _TOOL_NUDGE_HARD
+                    logger.warning(
+                        f"Detected code-block output without tool call, "
+                        f"nudging model (attempt {nudge_count}/{_MAX_NUDGES})"
+                    )
                     messages = self.context.add_assistant_message(
                         messages, content,
                         reasoning_content=response.reasoning_content,
                     )
-                    messages.append({"role": "user", "content": _TOOL_NUDGE})
+                    messages.append({"role": "user", "content": nudge})
                     continue
 
                 final_content = content
@@ -477,6 +491,7 @@ class AgentLoop:
 
         # Agent loop (limited for announce handling)
         iteration = 0
+        nudge_count = 0
         final_content = None
 
         while iteration < self.max_iterations:
@@ -519,15 +534,20 @@ class AgentLoop:
             else:
                 content = response.content or ""
                 if (
-                    iteration == 1
+                    nudge_count < _MAX_NUDGES
                     and _CODE_BLOCK_RE.search(content)
                 ):
-                    logger.warning("Detected code-block output without tool call in system handler, nudging")
+                    nudge_count += 1
+                    nudge = _TOOL_NUDGE if nudge_count == 1 else _TOOL_NUDGE_HARD
+                    logger.warning(
+                        f"Detected code-block output without tool call in system handler, "
+                        f"nudging (attempt {nudge_count}/{_MAX_NUDGES})"
+                    )
                     messages = self.context.add_assistant_message(
                         messages, content,
                         reasoning_content=response.reasoning_content,
                     )
-                    messages.append({"role": "user", "content": _TOOL_NUDGE})
+                    messages.append({"role": "user", "content": nudge})
                     continue
 
                 final_content = content
