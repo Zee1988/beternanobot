@@ -39,6 +39,13 @@ class SpawnTool(Tool):
                     "type": "string",
                     "description": "Optional short label for the task (for display)",
                 },
+                "plan_file": {
+                    "type": "string",
+                    "description": (
+                        "Optional path to a plan file (markdown, JSON, etc.) "
+                        "that guides the subagent's execution step-by-step"
+                    ),
+                },
             },
             "required": ["task"],
         }
@@ -47,6 +54,7 @@ class SpawnTool(Tool):
         self,
         task: str,
         label: str | None = None,
+        plan_file: str | None = None,
         *,
         _origin_channel: str = "cli",
         _origin_chat_id: str = "direct",
@@ -58,4 +66,5 @@ class SpawnTool(Tool):
             label=label,
             origin_channel=_origin_channel,
             origin_chat_id=_origin_chat_id,
+            plan_file=plan_file,
         )

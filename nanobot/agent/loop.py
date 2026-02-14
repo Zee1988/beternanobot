@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from pathlib import Path
 
 from loguru import logger
@@ -29,6 +30,15 @@ from nanobot.storage.retrieval import MEMORY_CONTEXT_PREFIX
 
 # H3: 需要 origin 上下文的工具集合
 _ORIGIN_TOOLS = {"spawn", "message", "cron"}
+
+# 检测 LLM 输出代码块但未调用工具的模式 (tool-call 退化)
+_CODE_BLOCK_RE = re.compile(r"```(?:bash|sh|shell|python|cmd|powershell)\b", re.IGNORECASE)
+
+_TOOL_NUDGE = (
+    "You have tools available. Do NOT output shell commands or code in markdown "
+    "code blocks. Instead, call the appropriate tool (e.g. exec for shell commands, "
+    "read_file for reading files). Execute the action now using a tool call."
+)
 
 
 class AgentLoop:
@@ -386,8 +396,23 @@ class AgentLoop:
                         messages, tool_call.id, tool_call.name, result
                     )
             else:
-                # No tool calls, we're done
-                final_content = response.content
+                # No tool calls — check for code-block-without-tool-call pattern
+                content = response.content or ""
+                if (
+                    iteration == 1
+                    and _CODE_BLOCK_RE.search(content)
+                ):
+                    # Model output code blocks instead of calling tools.
+                    # Nudge it to retry with actual tool calls.
+                    logger.warning("Detected code-block output without tool call, nudging model")
+                    messages = self.context.add_assistant_message(
+                        messages, content,
+                        reasoning_content=response.reasoning_content,
+                    )
+                    messages.append({"role": "user", "content": _TOOL_NUDGE})
+                    continue
+
+                final_content = content
                 # Feed assistant response to SummaryTimer
                 if final_content:
                     self.context.memory.feed_message("assistant", final_content)
@@ -492,7 +517,20 @@ class AgentLoop:
                         messages, tool_call.id, tool_call.name, result
                     )
             else:
-                final_content = response.content
+                content = response.content or ""
+                if (
+                    iteration == 1
+                    and _CODE_BLOCK_RE.search(content)
+                ):
+                    logger.warning("Detected code-block output without tool call in system handler, nudging")
+                    messages = self.context.add_assistant_message(
+                        messages, content,
+                        reasoning_content=response.reasoning_content,
+                    )
+                    messages.append({"role": "user", "content": _TOOL_NUDGE})
+                    continue
+
+                final_content = content
                 break
 
         if final_content is None:
