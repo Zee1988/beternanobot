@@ -43,11 +43,15 @@ class QueueManager:
         process_message: ProcessFn,
         run_manager: RunManager,
         config: QueueConfig,
+        on_run_start: Callable[[str, str], Awaitable[None]] | None = None,
+        on_run_end: Callable[[str, str], Awaitable[None]] | None = None,
     ) -> None:
         self._process_message = process_message
         self._run_manager = run_manager
         self._config = config
         self._lanes: dict[str, SessionLane] = {}
+        self._on_run_start = on_run_start
+        self._on_run_end = on_run_end
 
     def _get_lane(self, session_key: str) -> SessionLane:
         if session_key not in self._lanes:
@@ -105,6 +109,14 @@ class QueueManager:
             for lane in self._lanes.values()
         )
 
+    async def enqueue_heartbeat(self, msg: InboundMessage) -> bool:
+        """Enqueue heartbeat message, returns False if queue is busy."""
+        if self.has_active_runs():
+            logger.info(f"Heartbeat skipped due to active runs for {msg.session_key}")
+            return False
+        await self.enqueue(msg, mode="followup")
+        return True
+
     async def _process_direct(self, msg: InboundMessage, queue_mode: str) -> None:
         run_id = self._run_manager.create_run(msg.session_key)
         cancel_event = asyncio.Event()
@@ -135,22 +147,52 @@ class QueueManager:
                 lane.cancel_event = cancel_event
                 context = RunContext(run_id=run_id, cancel_event=cancel_event, queue_mode=next_msg.queue_mode or self._config.mode)
 
+                # Call on_run_start hook for typing indicator
+                if self._on_run_start and self._config.typing_indicator:
+                    await self._on_run_start(next_msg.channel, next_msg.chat_id)
+
                 self._run_manager.mark_started(run_id)
                 lane.active_task = asyncio.create_task(
                     self._process_message(next_msg, context)
                 )
+
+                # Check cancel during execution
+                async def check_cancel():
+                    while not cancel_event.is_set():
+                        await asyncio.sleep(0.1)
+                    # Cancel was requested - cancel the active task
+                    if lane.active_task and not lane.active_task.done():
+                        lane.active_task.cancel()
+
+                cancel_check_task = asyncio.create_task(check_cancel())
+
                 try:
                     result = await lane.active_task
+                    # Cancel the check task
+                    cancel_check_task.cancel()
+                    try:
+                        await cancel_check_task
+                    except asyncio.CancelledError:
+                        pass
+
                     if cancel_event.is_set():
                         self._run_manager.mark_cancelled(run_id, result)
                     else:
                         self._run_manager.mark_completed(run_id, result)
                 except asyncio.CancelledError:
+                    # Task was cancelled - expected behavior for steer
+                    cancel_check_task.cancel()
+                    try:
+                        await cancel_check_task
+                    except asyncio.CancelledError:
+                        pass
                     self._run_manager.mark_cancelled(run_id, "cancelled")
-                    raise
                 except Exception as exc:
                     self._run_manager.mark_failed(run_id, str(exc))
                 finally:
+                    # Call on_run_end hook for typing indicator
+                    if self._on_run_end and self._config.typing_indicator:
+                        await self._on_run_end(next_msg.channel, next_msg.chat_id)
                     lane.active_task = None
                     lane.cancel_event = None
         finally:

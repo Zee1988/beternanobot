@@ -189,7 +189,7 @@ class AgentDefaults(BaseModel):
     model: str = "anthropic/claude-opus-4-5"
     max_tokens: int = 8192
     temperature: float = 0.7
-    max_tool_iterations: int = 20
+    max_tool_iterations: int = 50
     context_compression: bool = True            # 上下文压缩总开关
     context_window_override: int | None = None  # 手动覆盖上下文窗口大小
     llm_call_timeout: int = 120                 # LLM 单次调用超时 (秒)

@@ -240,7 +240,7 @@ class DiscordChannel(BaseChannel):
 
     async def _start_typing(self, channel_id: str) -> None:
         """Start periodic typing indicator for a channel."""
-        await self._stop_typing(channel_id)
+        await self.stop_typing(channel_id)
 
         async def typing_loop() -> None:
             url = f"{DISCORD_API_BASE}/channels/{channel_id}/typing"
@@ -259,3 +259,11 @@ class DiscordChannel(BaseChannel):
         task = self._typing_tasks.pop(channel_id, None)
         if task:
             task.cancel()
+
+    async def start_typing(self, chat_id: str) -> None:
+        """Public method to start typing indicator."""
+        await self._start_typing(chat_id)
+
+    async def stop_typing(self, chat_id: str) -> None:
+        """Public method to stop typing indicator."""
+        await self._stop_typing(chat_id)

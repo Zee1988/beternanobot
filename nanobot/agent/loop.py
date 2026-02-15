@@ -14,6 +14,8 @@ from nanobot.agent.compressor import (
     trim_tool_result,
 )
 from nanobot.agent.context import ContextBuilder
+from nanobot.agent.queue_manager import QueueManager, RunContext
+from nanobot.agent.run_manager import RunManager
 from nanobot.agent.subagent import SubagentManager
 from nanobot.agent.tools.cron import CronTool
 from nanobot.agent.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
@@ -70,7 +72,7 @@ class AgentLoop:
         provider: LLMProvider,
         workspace: Path,
         model: str | None = None,
-        max_iterations: int = 20,
+        max_iterations: int = 50,
         exec_config: "ExecToolConfig | None" = None,  # noqa: F821
         cron_service: "CronService | None" = None,  # noqa: F821
         restrict_to_workspace: bool = False,
@@ -82,8 +84,10 @@ class AgentLoop:
         temperature: float = 0.7,
         subagent_config: "SubagentConfig | None" = None,  # noqa: F821
         llm_call_timeout: int = 120,
+        run_manager: RunManager | None = None,
+        queue_manager: QueueManager | None = None,
     ):
-        from nanobot.config.schema import ExecToolConfig
+        from nanobot.config.schema import ExecToolConfig, AgentDefaults
         self.bus = bus
         self.provider = provider
         self.workspace = workspace
@@ -100,6 +104,24 @@ class AgentLoop:
         self._max_tokens = max_tokens
         self._temperature = temperature
         self._llm_timeout = llm_call_timeout
+
+        # Run manager and queue manager for lifecycle + queue modes
+        self._run_manager = run_manager or RunManager()
+        self._queue_config = AgentDefaults().queue
+
+        # Create queue manager if not provided
+        if queue_manager is None:
+            queue_manager = QueueManager(
+                process_message=self._process_message_with_context,
+                run_manager=self._run_manager,
+                config=self._queue_config,
+                on_run_start=self._on_run_start_typing,
+                on_run_end=self._on_run_end_typing,
+            )
+        self._queue_manager = queue_manager
+
+        # Channel manager reference for typing indicators
+        self._channel_manager = None
 
         # 并发消息处理: 每 session 一把锁，防止同用户消息竞争
         self._session_locks: dict[str, asyncio.Lock] = {}
@@ -216,9 +238,9 @@ class AgentLoop:
                 return LLMResponse(content=msg, finish_reason="error")
 
     async def run(self) -> None:
-        """Run the agent loop, processing messages from the bus concurrently."""
+        """Run the agent loop, processing messages from the bus via queue."""
         self._running = True
-        logger.info("Agent loop started (concurrent mode)")
+        logger.info("Agent loop started (queue mode)")
 
         # 启动子代理 sweeper (gateway 模式)
         await self.subagents.start_sweeper()
@@ -230,24 +252,17 @@ class AgentLoop:
                         self.bus.consume_inbound(),
                         timeout=1.0
                     )
-                    # 并发派发: 每条消息一个 task，不阻塞主循环
-                    task = asyncio.create_task(self._handle_message(msg))
-                    self._active_tasks.add(task)
-                    task.add_done_callback(self._active_tasks.discard)
+                    # Enqueue message for session-serialized processing
+                    await self._queue_manager.enqueue(msg)
                 except asyncio.TimeoutError:
                     continue
         finally:
             await self.subagents.stop_sweeper()
-            # 等待所有活跃任务完成 (带超时)
-            if self._active_tasks:
-                logger.info(f"Waiting for {len(self._active_tasks)} active tasks to finish...")
-                done, pending = await asyncio.wait(
-                    self._active_tasks, timeout=30.0
-                )
-                for t in pending:
-                    t.cancel()
-                if pending:
-                    logger.warning(f"Force-cancelled {len(pending)} tasks on shutdown")
+            # 等待所有队列任务完成 (带超时)
+            if self._queue_manager.has_active_runs():
+                logger.info("Waiting for queue to drain...")
+                # Give some time for pending tasks
+                await asyncio.sleep(2.0)
 
     def stop(self) -> None:
         """Stop the agent loop."""
@@ -307,6 +322,40 @@ class AgentLoop:
             finally:
                 if heartbeat_task and not heartbeat_task.done():
                     heartbeat_task.cancel()
+
+    async def _on_run_start_typing(self, channel: str, chat_id: str) -> None:
+        """Callback to start typing indicator when run starts."""
+        if self._channel_manager:
+            channel_obj = self._channel_manager.get_channel(channel)
+            if channel_obj:
+                try:
+                    await channel_obj.start_typing(chat_id)
+                except Exception:
+                    pass  # Ignore typing errors
+
+    async def _on_run_end_typing(self, channel: str, chat_id: str) -> None:
+        """Callback to stop typing indicator when run ends."""
+        if self._channel_manager:
+            channel_obj = self._channel_manager.get_channel(channel)
+            if channel_obj:
+                try:
+                    await channel_obj.stop_typing(chat_id)
+                except Exception:
+                    pass  # Ignore typing errors
+
+    def set_channel_manager(self, channel_manager) -> None:
+        """Set the channel manager for typing indicators."""
+        self._channel_manager = channel_manager
+
+    async def _process_message_with_context(
+        self, msg: InboundMessage, ctx: RunContext
+    ) -> str | None:
+        """Process message with run context (for queue manager)."""
+        # Set up cancel check after each tool execution
+        # The context.cancel_event will be checked by the queue manager
+        # For now, just call the existing _process_message
+        response = await self._process_message(msg)
+        return response.content if response else None
 
     async def _process_message(self, msg: InboundMessage) -> OutboundMessage | None:
         """
@@ -646,8 +695,20 @@ class AgentLoop:
             content=content
         )
 
-        response = await self._process_message(msg)
-        return response.content if response else ""
+        # Use queue manager for direct processing
+        run_id = self._run_manager.create_run(msg.session_key)
+        from nanobot.agent.queue_manager import RunContext
+        import asyncio
+        cancel_event = asyncio.Event()
+        ctx = RunContext(run_id=run_id, cancel_event=cancel_event, queue_mode="followup")
+        self._run_manager.mark_started(run_id)
+        try:
+            result = await self._process_message_with_context(msg, ctx)
+            self._run_manager.mark_completed(run_id, result)
+            return result or ""
+        except Exception as exc:
+            self._run_manager.mark_failed(run_id, str(exc))
+            raise
 
     async def shutdown(self):
         """Shutdown agent loop and smart memory."""

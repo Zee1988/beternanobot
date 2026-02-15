@@ -61,19 +61,19 @@ class BaseChannel(ABC):
     def is_allowed(self, sender_id: str) -> bool:
         """
         Check if a sender is allowed to use this bot.
-        
+
         Args:
             sender_id: The sender's identifier.
-        
+
         Returns:
             True if allowed, False otherwise.
         """
         allow_list = getattr(self.config, "allow_from", [])
-        
+
         # If no allow list, allow everyone
         if not allow_list:
             return True
-        
+
         sender_str = str(sender_id)
         if sender_str in allow_list:
             return True
@@ -82,6 +82,24 @@ class BaseChannel(ABC):
                 if part and part in allow_list:
                     return True
         return False
+
+    async def start_typing(self, chat_id: str) -> None:
+        """
+        Send typing indicator to the chat.
+
+        Args:
+            chat_id: The chat to send typing indicator to.
+        """
+        pass  # Default no-op
+
+    async def stop_typing(self, chat_id: str) -> None:
+        """
+        Stop typing indicator to the chat.
+
+        Args:
+            chat_id: The chat to stop typing indicator for.
+        """
+        pass  # Default no-op
     
     async def _handle_message(
         self,

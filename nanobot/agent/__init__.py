@@ -6,6 +6,7 @@ from nanobot.agent.memory import MemoryStore
 from nanobot.agent.skills import SkillsLoader
 from nanobot.agent.run_events import RunEvent, RunStatus
 from nanobot.agent.run_manager import RunManager
+from nanobot.agent.queue_manager import QueueManager, RunContext
 
 __all__ = [
     "AgentLoop",
@@ -15,4 +16,6 @@ __all__ = [
     "RunEvent",
     "RunStatus",
     "RunManager",
+    "QueueManager",
+    "RunContext",
 ]
