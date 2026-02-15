@@ -26,6 +26,7 @@ from nanobot.bus.events import InboundMessage, OutboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.providers.base import ContextOverflowError, LLMProvider, LLMResponse
 from nanobot.session.manager import SessionManager
+from nanobot.session.tool_result_guard import ToolResultGuard
 from nanobot.storage.retrieval import MEMORY_CONTEXT_PREFIX
 
 # H3: 需要 origin 上下文的工具集合
@@ -439,8 +440,9 @@ class AgentLoop:
         preview = final_content[:120] + "..." if len(final_content) > 120 else final_content
         logger.info(f"Response to {msg.channel}:{msg.sender_id}: {preview}")
 
-        # Save to session
+        # Save to session — preserve full tool call structure for positive reinforcement
         session.add_message("user", msg.content)
+        self._save_tool_history(session, messages)
         session.add_message("assistant", final_content)
         self.sessions.save(session)
 
@@ -450,6 +452,56 @@ class AgentLoop:
             content=final_content,
             metadata=msg.metadata or {},  # Pass through for channel-specific needs (e.g. Slack thread_ts)
         )
+
+    @staticmethod
+    def _save_tool_history(session, messages: list[dict]) -> None:
+        """Extract tool call exchanges from LLM messages and save to session.
+
+        Uses ToolResultGuard to ensure every tool call has a matching result
+        before persisting. This gives the model positive reinforcement by
+        seeing structured tool calls in future history.
+        """
+        # Collect new tool exchanges (walk backwards from end to last user msg)
+        new_tool_msgs = []
+        for msg in reversed(messages):
+            role = msg.get("role")
+            if role == "tool":
+                new_tool_msgs.append(msg)
+            elif role == "assistant" and msg.get("tool_calls"):
+                new_tool_msgs.append(msg)
+            elif role == "user":
+                break
+            elif role == "assistant":
+                continue
+
+        new_tool_msgs.reverse()
+
+        # Pass through the guard to ensure pairing integrity
+        guard = ToolResultGuard()
+        for msg in new_tool_msgs:
+            guarded = guard.process(msg)
+            for m in guarded:
+                role = m["role"]
+                content = m.get("content", "") or ""
+                if role == "assistant" and m.get("tool_calls"):
+                    session.add_message(
+                        "assistant", content,
+                        tool_calls=m["tool_calls"],
+                    )
+                elif role == "tool":
+                    session.add_message(
+                        "tool", content,
+                        tool_call_id=m.get("tool_call_id", ""),
+                        name=m.get("name", ""),
+                    )
+
+        # Flush any remaining unmatched tool calls
+        for m in guard.flush_pending():
+            session.add_message(
+                "tool", m.get("content", ""),
+                tool_call_id=m.get("tool_call_id", ""),
+                name=m.get("name", ""),
+            )
 
     async def _process_system_message(self, msg: InboundMessage) -> OutboundMessage | None:
         """
@@ -556,8 +608,9 @@ class AgentLoop:
         if final_content is None:
             final_content = "Background task completed."
 
-        # Save to session (mark as system message in history)
+        # Save to session — preserve full tool call structure for positive reinforcement
         session.add_message("user", f"[System: {msg.sender_id}] {msg.content}")
+        self._save_tool_history(session, messages)
         session.add_message("assistant", final_content)
         self.sessions.save(session)
 

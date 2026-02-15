@@ -99,8 +99,10 @@ Your workspace is at: {workspace_path}
 - Daily notes: {workspace_path}/notes/YYYY-MM-DD.md
 - Custom skills: {workspace_path}/skills/{{skill-name}}/SKILL.md
 
-IMPORTANT: When responding to direct questions or conversations, reply directly with your text response.
-Only use the 'message' tool when you need to send a message to a specific chat channel (like WhatsApp).
+IMPORTANT: When you need to execute a command, read a file, or perform any action,
+you MUST use function calling (tool_use). Never output commands in code blocks.
+Code blocks in your response are only for SHOWING code to the user, not for execution.
+Only use the 'message' tool when you need to send a message to a specific chat channel.
 For normal conversation, just respond with text - do not call the message tool.
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
@@ -222,6 +224,10 @@ When remembering something, write to {workspace_path}/MEMORY.md"""
         Returns:
             Updated message list.
         """
+        # Normalize whitespace-only content to empty string when tool_calls
+        # present — MiniMax rejects non-empty whitespace in history (error 2013).
+        if tool_calls and content and not content.strip():
+            content = ""
         msg: dict[str, Any] = {"role": "assistant", "content": content or ""}
         
         if tool_calls:

@@ -327,7 +327,7 @@ def _decode_vec(blob: bytes) -> list[float]:
 def _sanitize_fts_query(query: str) -> str:
     """Clean FTS5 query, remove special chars to prevent syntax errors."""
     import re
-    cleaned = re.sub(r'["\*\(\)\-\+\^\.\:\;\!\?\@\#\$\%\&\=\[\]\{\}\|\\\/\<\>\~\`]', ' ', query)
+    cleaned = re.sub(r'["\*\(\)\-\+\^\.\:\;\!\?\@\#\$\%\&\=\[\]\{\}\|\\\/\<\>\~\`,\']', ' ', query)
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     if not cleaned or len(cleaned) < 2:
         return ""
