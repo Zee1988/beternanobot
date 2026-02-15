@@ -15,6 +15,22 @@ Filesystem = Disk (persistent, unlimited)
 → Anything important gets written to disk.
 ```
 
+## Directory Structure
+
+Planning files are stored in `/tmp/nanobot/plans/` to keep workspace clean:
+
+```
+/tmp/nanobot/plans/
+├── project-name/
+│   ├── task_plan.md
+│   ├── findings.md
+│   └── progress.md
+└── another-project/
+    └── ...
+```
+
+This keeps your workspace directory clean from planning artifacts.
+
 ## Quick Start
 
 Before ANY complex task:
@@ -32,6 +48,18 @@ Or initialize all three at once:
 ```bash
 bash {baseDir}/scripts/init-session.sh [project-name]
 ```
+
+This creates files under `_plans/[project-name]/` automatically.
+
+## Cleanup
+
+After task completion, clean up planning files:
+
+```bash
+bash {baseDir}/scripts/cleanup-session.sh [project-name]
+```
+
+This removes the `_plans/[project-name]/` directory and all planning files.
 
 ## File Purposes
 

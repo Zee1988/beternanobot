@@ -1,16 +1,22 @@
 #!/bin/bash
 # Initialize planning files for a new session
 # Usage: ./init-session.sh [project-name]
+# Files are created in /tmp/nanobot/plans/
 
 set -e
 
 PROJECT_NAME="${1:-project}"
 DATE=$(date +%Y-%m-%d)
 
-echo "Initializing planning files for: $PROJECT_NAME"
+# Use /tmp for planning files to avoid polluting workspace
+PLANS_DIR="/tmp/nanobot/plans/$PROJECT_NAME"
+mkdir -p "$PLANS_DIR"
 
-if [ ! -f "task_plan.md" ]; then
-    cat > task_plan.md << 'EOF'
+echo "Initializing planning files for: $PROJECT_NAME"
+echo "Location: $PLANS_DIR/"
+
+if [ ! -f "$PLANS_DIR/task_plan.md" ]; then
+    cat > "$PLANS_DIR/task_plan.md" << 'EOF'
 # Task Plan: [Brief Description]
 
 ## Goal
@@ -60,8 +66,8 @@ else
     echo "task_plan.md already exists, skipping"
 fi
 
-if [ ! -f "findings.md" ]; then
-    cat > findings.md << 'EOF'
+if [ ! -f "$PLANS_DIR/findings.md" ]; then
+    cat > "$PLANS_DIR/findings.md" << 'EOF'
 # Findings & Decisions
 
 ## Requirements
@@ -86,8 +92,8 @@ else
     echo "findings.md already exists, skipping"
 fi
 
-if [ ! -f "progress.md" ]; then
-    cat > progress.md << EOF
+if [ ! -f "$PLANS_DIR/progress.md" ]; then
+    cat > "$PLANS_DIR/progress.md" << EOF
 # Progress Log
 
 ## Session: $DATE
@@ -114,4 +120,5 @@ fi
 
 echo ""
 echo "Planning files initialized!"
+echo "Location: $PLANS_DIR/"
 echo "Files: task_plan.md, findings.md, progress.md"

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 from telegram import BotCommand, Update
+from telegram.error import TelegramError
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from nanobot.bus.events import OutboundMessage
@@ -17,6 +18,60 @@ from nanobot.markdown.format import markdown_to_telegram_chunks
 
 if TYPE_CHECKING:
     from nanobot.session.manager import SessionManager
+
+
+# Recoverable network error patterns (matching OpenClaw's approach)
+RECOVERABLE_ERRORS = {
+    "Timed out",
+    "Connection reset",
+    "Connection refused",
+    "Connection aborted",
+    "Network is unreachable",
+    "Host is unreachable",
+    "Name or service not known",
+    "Temporary failure in name resolution",
+    "Connect timeout",
+    "Read timeout",
+    "Write timeout",
+    "Socket timeout",
+}
+
+
+def _is_recoverable_error(err: Exception) -> bool:
+    """Check if error is recoverable (network-related) and worth retrying."""
+    err_str = str(err).lower()
+    # Check by error type
+    if isinstance(err, TelegramError):
+        msg = str(err).lower()
+        # Check for recoverable Telegram error codes in message
+        if any(code in msg for code in ["429", "500", "502", "503", "504"]):
+            return True
+    # Check by error message patterns
+    for pattern in RECOVERABLE_ERRORS:
+        if pattern.lower() in err_str:
+            return True
+    return False
+
+
+async def _send_with_retry(bot, chat_id: int, text: str, **kwargs) -> None:
+    """Send message with retry logic and exponential backoff."""
+    max_retries = 3
+    base_delay = 1.0  # seconds
+
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            await bot.send_message(chat_id=chat_id, text=text, **kwargs)
+            return
+        except Exception as e:
+            last_error = e
+            if not _is_recoverable_error(e) or attempt == max_retries - 1:
+                raise
+            delay = base_delay * (2 ** attempt)  # Exponential backoff
+            logger.warning(f"Telegram send failed (attempt {attempt + 1}/{max_retries}), retrying in {delay}s: {e}")
+            await asyncio.sleep(delay)
+
+    raise last_error
 
 
 class TelegramChannel(BaseChannel):
@@ -120,7 +175,7 @@ class TelegramChannel(BaseChannel):
             self._app = None
     
     async def send(self, msg: OutboundMessage) -> None:
-        """Send a message through Telegram."""
+        """Send a message through Telegram with retry and timeout."""
         if not self._app:
             logger.warning("Telegram bot not running")
             return
@@ -132,8 +187,12 @@ class TelegramChannel(BaseChannel):
             chat_id = int(msg.chat_id)
             chunks = markdown_to_telegram_chunks(msg.content)
             for chunk in chunks:
-                await self._app.bot.send_message(
-                    chat_id=chat_id, text=chunk, parse_mode="HTML"
+                await _send_with_retry(
+                    self._app.bot,
+                    chat_id=chat_id,
+                    text=chunk,
+                    parse_mode="HTML",
+                    timeout=30,  # 30 second timeout
                 )
         except ValueError:
             logger.error(f"Invalid chat_id: {msg.chat_id}")
@@ -142,8 +201,11 @@ class TelegramChannel(BaseChannel):
             try:
                 text = msg.content
                 for i in range(0, len(text), 4096):
-                    await self._app.bot.send_message(
-                        chat_id=int(msg.chat_id), text=text[i:i + 4096]
+                    await _send_with_retry(
+                        self._app.bot,
+                        chat_id=int(msg.chat_id),
+                        text=text[i:i + 4096],
+                        timeout=30,
                     )
             except Exception as e2:
                 logger.error(f"Error sending Telegram message: {e2}")
@@ -297,13 +359,13 @@ class TelegramChannel(BaseChannel):
             }
         )
     
-    def _start_typing(self, chat_id: str) -> None:
+    async def start_typing(self, chat_id: str) -> None:
         """Start sending 'typing...' indicator for a chat."""
         # Cancel any existing typing task for this chat
-        self._stop_typing(chat_id)
+        await self.stop_typing(chat_id)
         self._typing_tasks[chat_id] = asyncio.create_task(self._typing_loop(chat_id))
-    
-    def _stop_typing(self, chat_id: str) -> None:
+
+    async def stop_typing(self, chat_id: str) -> None:
         """Stop the typing indicator for a chat."""
         task = self._typing_tasks.pop(chat_id, None)
         if task and not task.done():
