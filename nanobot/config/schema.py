@@ -163,6 +163,26 @@ class SubagentConfig(BaseModel):
     nesting_enabled: bool = False     # 是否允许子代理嵌套 spawn (简化 M3)
 
 
+class QueueConfig(BaseModel):
+    """Message queue configuration."""
+    enabled: bool = True
+    mode: str = "followup"  # followup | steer | collect | steer-backlog
+    debounce_ms: int = 250
+    max_pending_per_session: int = 50
+    max_pending_total: int = 2000
+    overflow_strategy: str = "drop_oldest"  # drop_oldest | drop_newest | raise
+    typing_indicator: bool = True
+
+
+class AutoContinueConfig(BaseModel):
+    """Auto-continue configuration for multi-step tasks."""
+    enabled: bool = True
+    max_continues: int = 6
+    marker_continue: str = "#CONTINUE"
+    marker_done: str = "#DONE"
+    progress_output: str = "final_only"
+
+
 class AgentDefaults(BaseModel):
     """Default agent configuration."""
     workspace: str = "~/.nanobot/workspace"
@@ -173,6 +193,8 @@ class AgentDefaults(BaseModel):
     context_compression: bool = True            # 上下文压缩总开关
     context_window_override: int | None = None  # 手动覆盖上下文窗口大小
     llm_call_timeout: int = 120                 # LLM 单次调用超时 (秒)
+    queue: QueueConfig = Field(default_factory=QueueConfig)
+    auto_continue: AutoContinueConfig = Field(default_factory=AutoContinueConfig)
 
 
 class AgentsConfig(BaseModel):
