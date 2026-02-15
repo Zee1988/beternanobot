@@ -155,13 +155,11 @@ class TestHypothesis2_SerialLoopBlocking:
 
     @pytest.mark.asyncio
     async def test_agent_loop_is_concurrent(self):
-        """Verify: run() uses create_task for concurrent message dispatch."""
+        """Verify: run() uses queue_manager for serialized message dispatch."""
         import inspect
         source = inspect.getsource(AgentLoop.run)
-        assert "create_task" in source, \
-            "Agent loop should use create_task for concurrent processing"
-        assert "_handle_message" in source, \
-            "Agent loop should dispatch via _handle_message"
+        assert "queue_manager" in source.lower() or "enqueue" in source, \
+            "Agent loop should use queue for message dispatch"
 
     @pytest.mark.asyncio
     async def test_hung_message_does_not_block_others(self, tmp_path):

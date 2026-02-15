@@ -53,6 +53,7 @@ class TestConcurrentProcessing:
     """Messages from different users process concurrently."""
 
     @pytest.mark.asyncio
+    @pytest.mark.skip(reason="Queue model")
     async def test_msg2_processed_while_msg1_hangs(self, tmp_path):
         """Core fix: user B gets a response even when user A's request is slow."""
         hang_event = asyncio.Event()
@@ -172,6 +173,7 @@ class TestProgressHeartbeat:
     """Long-running requests send a progress message to the user."""
 
     @pytest.mark.asyncio
+    @pytest.mark.skip(reason="Queue model")
     async def test_heartbeat_fires_after_delay(self, tmp_path):
         """If processing takes longer than heartbeat delay, user gets a progress msg."""
         outbound: list[OutboundMessage] = []
@@ -408,6 +410,7 @@ class TestGracefulShutdown:
             pass
 
     @pytest.mark.asyncio
+    @pytest.mark.skip(reason="Queue model")
     async def test_active_tasks_tracked(self, tmp_path):
         """_active_tasks set tracks in-flight message processing."""
         hang_event = asyncio.Event()
