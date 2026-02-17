@@ -58,6 +58,9 @@ async def _send_with_retry(bot, chat_id: int, text: str, **kwargs) -> None:
     max_retries = 3
     base_delay = 1.0  # seconds
 
+    # Remove timeout from kwargs if present (not supported by all versions)
+    kwargs.pop("timeout", None)
+
     last_error = None
     for attempt in range(max_retries):
         try:

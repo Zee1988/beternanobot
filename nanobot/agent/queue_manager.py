@@ -10,7 +10,8 @@ from typing import Awaitable, Callable
 from loguru import logger
 
 from nanobot.agent.run_manager import RunManager
-from nanobot.bus.events import InboundMessage
+from nanobot.bus.events import InboundMessage, OutboundMessage
+from nanobot.bus.queue import MessageBus
 from nanobot.config.schema import QueueConfig
 
 
@@ -43,12 +44,14 @@ class QueueManager:
         process_message: ProcessFn,
         run_manager: RunManager,
         config: QueueConfig,
+        bus: MessageBus | None = None,
         on_run_start: Callable[[str, str], Awaitable[None]] | None = None,
         on_run_end: Callable[[str, str], Awaitable[None]] | None = None,
     ) -> None:
         self._process_message = process_message
         self._run_manager = run_manager
         self._config = config
+        self._bus = bus
         self._lanes: dict[str, SessionLane] = {}
         self._on_run_start = on_run_start
         self._on_run_end = on_run_end
@@ -125,8 +128,23 @@ class QueueManager:
         try:
             result = await self._process_message(msg, context)
             self._run_manager.mark_completed(run_id, result)
+            # Publish response to bus
+            if result and self._bus:
+                await self._bus.publish_outbound(OutboundMessage(
+                    channel=msg.channel,
+                    chat_id=msg.chat_id,
+                    content=result,
+                    metadata=msg.metadata or {},
+                ))
         except Exception as exc:
             self._run_manager.mark_failed(run_id, str(exc))
+            # Publish error response
+            if self._bus:
+                await self._bus.publish_outbound(OutboundMessage(
+                    channel=msg.channel,
+                    chat_id=msg.chat_id,
+                    content=f"Error: {str(exc)}",
+                ))
 
     def _ensure_worker(self, session_key: str) -> None:
         lane = self._get_lane(session_key)
@@ -179,6 +197,14 @@ class QueueManager:
                         self._run_manager.mark_cancelled(run_id, result)
                     else:
                         self._run_manager.mark_completed(run_id, result)
+                    # Publish response to bus
+                    if result and self._bus:
+                        await self._bus.publish_outbound(OutboundMessage(
+                            channel=next_msg.channel,
+                            chat_id=next_msg.chat_id,
+                            content=result,
+                            metadata=next_msg.metadata or {},
+                        ))
                 except asyncio.CancelledError:
                     # Task was cancelled - expected behavior for steer
                     cancel_check_task.cancel()

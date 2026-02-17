@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 from pydantic_settings import BaseSettings
 
 
@@ -24,11 +24,11 @@ class TelegramConfig(BaseModel):
 class FeishuConfig(BaseModel):
     """Feishu/Lark channel configuration using WebSocket long connection."""
     enabled: bool = False
-    app_id: str = ""  # App ID from Feishu Open Platform
-    app_secret: str = ""  # App Secret from Feishu Open Platform
-    encrypt_key: str = ""  # Encrypt Key for event subscription (optional)
-    verification_token: str = ""  # Verification Token for event subscription (optional)
-    allow_from: list[str] = Field(default_factory=list)  # Allowed user open_ids
+    app_id: str = Field("", validation_alias=AliasChoices("app_id", "appId"))
+    app_secret: str = Field("", validation_alias=AliasChoices("app_secret", "appSecret"))
+    encrypt_key: str = Field("", validation_alias=AliasChoices("encrypt_key", "encryptKey"))
+    verification_token: str = Field("", validation_alias=AliasChoices("verification_token", "verificationToken"))
+    allow_from: list[str] = Field(default_factory=list)
 
     # Tool enable flags (default False for backward compatibility)
     enable_docs: bool = False   # Document operations (read/create/append)
