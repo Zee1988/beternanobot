@@ -165,7 +165,7 @@ class TelegramChannel(BaseChannel):
         
         # Cancel all typing indicators
         for chat_id in list(self._typing_tasks):
-            self._stop_typing(chat_id)
+            await self.stop_typing(chat_id)
         
         if self._app:
             logger.info("Stopping Telegram bot...")
@@ -181,7 +181,7 @@ class TelegramChannel(BaseChannel):
             return
 
         # Stop typing indicator for this chat
-        self._stop_typing(msg.chat_id)
+        await self.stop_typing(msg.chat_id)
 
         try:
             chat_id = int(msg.chat_id)
@@ -342,7 +342,7 @@ class TelegramChannel(BaseChannel):
         str_chat_id = str(chat_id)
         
         # Start typing indicator before processing
-        self._start_typing(str_chat_id)
+        await self.start_typing(str_chat_id)
         
         # Forward to the message bus
         await self._handle_message(
