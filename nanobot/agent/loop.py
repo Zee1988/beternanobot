@@ -115,6 +115,7 @@ class AgentLoop:
                 process_message=self._process_message_with_context,
                 run_manager=self._run_manager,
                 config=self._queue_config,
+                bus=bus,
                 on_run_start=self._on_run_start_typing,
                 on_run_end=self._on_run_end_typing,
             )
